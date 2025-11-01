@@ -1,0 +1,231 @@
+[
+  {
+    "id": "1",
+    "name": "The Ruins",
+    "type": "historical",
+    "description": "A beautiful ruined mansion with Italian architecture, often called the 'Taj Mahal of Negros'. Built in the early 1900s, it's one of Bacolod's most iconic landmarks. The structure glows beautifully at sunset and is surrounded by gardens.",
+    "location": {
+      "address": "Talisay City, Negros Occidental",
+      "latitude": 10.7371,
+      "longitude": 122.9603
+    },
+    "tags": ["historical", "architecture", "photography", "romantic"],
+    "best_time_to_visit": "sunset",
+    "entry_fee": "PHP 150",
+    "personality_match": {
+      "history_buff": 0.95,
+      "cultural": 0.9,
+      "adventurous": 0.6
+    }
+  },
+  {
+    "id": "2",
+    "name": "Masskara Festival",
+    "type": "cultural",
+    "description": "Annual festival celebrating Bacolod's smiling culture, held every October. Features colorful masks, street dancing, food fairs, and cultural performances. Known as the 'Festival of Smiles'.",
+    "location": {
+      "address": "Bacolod City",
+      "latitude": 10.6407,
+      "longitude": 122.9689
+    },
+    "tags": ["festival", "cultural", "dancing", "food"],
+    "best_time_to_visit": "October",
+    "entry_fee": "Free",
+    "personality_match": {
+      "cultural": 1.0,
+      "social": 0.95,
+      "foodie": 0.8
+    }
+  },
+  {
+    "id": "3",
+    "name": "Chicken Inasal",
+    "type": "food",
+    "description": "Bacolod's signature grilled chicken dish, marinated in local spices and cooked over hot coals. Served with garlic rice and sinamak (spiced vinegar). A must-try local delicacy.",
+    "location": {
+      "address": "Various locations in Bacolod",
+      "latitude": 10.6407,
+      "longitude": 122.9689
+    },
+    "tags": ["food", "local", "restaurant", "authentic"],
+    "best_time_to_visit": "lunch or dinner",
+    "entry_fee": "PHP 100-200",
+    "personality_match": {
+      "foodie": 1.0,
+      "cultural": 0.85,
+      "adventurous": 0.7
+    }
+  },
+  {
+    "id": "4",
+    "name": "Campuestohan Highland Resort",
+    "type": "nature",
+    "description": "Mountain resort offering zip lines, hanging bridges, swimming pools, and cool mountain air. Perfect for families and adventure seekers. Features themed attractions and scenic views.",
+    "location": {
+      "address": "Talisay City, Negros Occidental",
+      "latitude": 10.7583,
+      "longitude": 123.0333
+    },
+    "tags": ["nature", "adventure", "family", "resort"],
+    "best_time_to_visit": "dry season",
+    "entry_fee": "PHP 350-500",
+    "personality_match": {
+      "nature_lover": 0.9,
+      "adventurous": 0.95,
+      "social": 0.8
+    }
+  },
+  {
+    "id": "5",
+    "name": "San Sebastian Cathedral",
+    "type": "religious",
+    "description": "Historic Catholic cathedral built in 1882, featuring beautiful architecture and stained glass windows. A peaceful place for reflection and appreciation of Bacolod's religious heritage.",
+    "location": {
+      "address": "Burgos Street, Bacolod City",
+      "latitude": 10.6703,
+      "longitude": 122.9414
+    },
+    "tags": ["religious", "historical", "architecture", "peaceful"],
+    "best_time_to_visit": "morning",
+    "entry_fee": "Free",
+    "personality_match": {
+      "history_buff": 0.85,
+      "cultural": 0.9,
+      "adventurous": 0.5
+    }
+  },
+  {
+    "id": "6",
+    "name": "Negros Museum",
+    "type": "cultural",
+    "description": "Museum showcasing Negros Occidental's rich history, culture, and heritage. Features artifacts, exhibits, and interactive displays about the sugar industry and local traditions.",
+    "location": {
+      "address": "Gatuslao Street, Bacolod City",
+      "latitude": 10.6653,
+      "longitude": 122.9425
+    },
+    "tags": ["museum", "history", "cultural", "educational"],
+    "best_time_to_visit": "morning to afternoon",
+    "entry_fee": "PHP 100",
+    "personality_match": {
+      "history_buff": 0.95,
+      "cultural": 0.95,
+      "adventurous": 0.5
+    }
+  },
+  {
+    "id": "7",
+    "name": "Pasalubong Center",
+    "type": "shopping",
+    "description": "One-stop shop for Bacolod delicacies and souvenirs including piaya, napoleones, and other local treats. Perfect for bringing home a taste of Bacolod.",
+    "location": {
+      "address": "Various locations in Bacolod",
+      "latitude": 10.6407,
+      "longitude": 122.9689
+    },
+    "tags": ["shopping", "food", "souvenirs", "local"],
+    "best_time_to_visit": "anytime",
+    "entry_fee": "Free",
+    "personality_match": {
+      "foodie": 0.9,
+      "cultural": 0.8,
+      "social": 0.7
+    }
+  },
+  {
+    "id": "8",
+    "name": "Magikland Theme Park",
+    "type": "entertainment",
+    "description": "Family-friendly theme park with rides, attractions, and entertainment. Great for families with children and those seeking fun and adventure.",
+    "location": {
+      "address": "Bacolod City",
+      "latitude": 10.6407,
+      "longitude": 122.9689
+    },
+    "tags": ["theme park", "family", "entertainment", "adventure"],
+    "best_time_to_visit": "weekends",
+    "entry_fee": "PHP 500-800",
+    "personality_match": {
+      "adventurous": 0.85,
+      "social": 0.9,
+      "nature_lover": 0.4
+    }
+  },
+  {
+    "id": "9",
+    "name": "Balay Negrense",
+    "type": "historical",
+    "description": "Heritage house museum showcasing the lifestyle of Negrense sugar barons during the late 19th century. Features period furniture and antiques.",
+    "location": {
+      "address": "Cinco de Noviembre Street, Silay City",
+      "latitude": 10.8011,
+      "longitude": 122.9744
+    },
+    "tags": ["museum", "historical", "architecture", "cultural"],
+    "best_time_to_visit": "morning to afternoon",
+    "entry_fee": "PHP 60",
+    "personality_match": {
+      "history_buff": 0.95,
+      "cultural": 0.9,
+      "adventurous": 0.5
+    }
+  },
+  {
+    "id": "10",
+    "name": "Lacson Street (Heritage Walk)",
+    "type": "cultural",
+    "description": "Famous street lined with heritage houses and colonial architecture. Perfect for a leisurely walk to admire Bacolod's architectural heritage and take photos.",
+    "location": {
+      "address": "Lacson Street, Bacolod City",
+      "latitude": 10.6703,
+      "longitude": 122.9414
+    },
+    "tags": ["walking", "architecture", "cultural", "photography"],
+    "best_time_to_visit": "early morning or late afternoon",
+    "entry_fee": "Free",
+    "personality_match": {
+      "cultural": 0.9,
+      "history_buff": 0.85,
+      "nature_lover": 0.6
+    }
+  },
+  {
+    "id": "11",
+    "name": "Mambukal Mountain Resort",
+    "type": "nature",
+    "description": "Natural hot springs resort with swimming pools, hiking trails, and waterfalls. Perfect for nature lovers and those seeking relaxation. Features 7 waterfalls and sulfur hot springs.",
+    "location": {
+      "address": "Murcia, Negros Occidental",
+      "latitude": 10.5833,
+      "longitude": 123.1667
+    },
+    "tags": ["nature", "hot springs", "hiking", "waterfalls"],
+    "best_time_to_visit": "dry season",
+    "entry_fee": "PHP 50-100",
+    "personality_match": {
+      "nature_lover": 1.0,
+      "adventurous": 0.85,
+      "cultural": 0.6
+    }
+  },
+  {
+    "id": "12",
+    "name": "Calea Pastries & Coffee",
+    "type": "food",
+    "description": "Famous bakery and cafe known for delicious cakes, pastries, and coffee. A favorite among locals and tourists. Try their signature chocolate cakes and cheesecakes.",
+    "location": {
+      "address": "Lacson Street, Bacolod City",
+      "latitude": 10.6703,
+      "longitude": 122.9414
+    },
+    "tags": ["food", "cafe", "dessert", "local"],
+    "best_time_to_visit": "afternoon",
+    "entry_fee": "PHP 200-400",
+    "personality_match": {
+      "foodie": 0.95,
+      "social": 0.8,
+      "cultural": 0.7
+    }
+  }
+]
+

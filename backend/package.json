@@ -8,7 +8,8 @@
     "build": "echo 'Backend build step - install dependencies via poetry'",
     "test": "pytest",
     "lint": "ruff check . && black --check . && mypy .",
-    "format": "black . && ruff format ."
+    "format": "black . && ruff format .",
+    "ingest": "python scripts/ingest_attractions.py"
   },
   "keywords": [],
   "author": "",

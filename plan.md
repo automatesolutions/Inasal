@@ -33,11 +33,11 @@
 - [x] Add backend unit tests for auth and profile modules; extend e2e test for dashboard rendering personalized stub.
 
 #### Phase 3 — Recommendation Engine & Vector Store (Estimated: Week 3-4)
-- [ ] Curate initial Bacolod attractions dataset; embed using chosen LLM embeddings model.
-- [ ] Set up FAISS (local) with option to swap to Pinecone in production; expose ingestion pipeline scripts.
-- [ ] Implement `recommendation.py` using LangChain chains to combine personality profile + vector search results.
-- [ ] Introduce prompt templates and configuration management for experimentation.
-- [ ] Write unit tests for recommendation scoring logic and retrieval adapters.
+- [x] Curate initial Bacolod attractions dataset; embed using chosen LLM embeddings model.
+- [x] Set up FAISS (local) with option to swap to Pinecone in production; expose ingestion pipeline scripts.
+- [x] Implement `recommendation.py` using LangChain chains to combine personality profile + vector search results.
+- [x] Introduce prompt templates and configuration management for experimentation.
+- [x] Write unit tests for recommendation scoring logic and retrieval adapters.
 
 #### Phase 4 — RAG Engine & Real-Time Enrichment (Estimated: Week 4-5)
 - [ ] Implement `rag_engine.py` to orchestrate weather, events, and local news sources (RSS/API) with caching strategy.
