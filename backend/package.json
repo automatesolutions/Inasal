@@ -1,0 +1,17 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "description": "Backend API for Bacolod Tourist AI",
+  "private": true,
+  "scripts": {
+    "dev": "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "build": "echo 'Backend build step - install dependencies via poetry'",
+    "test": "pytest",
+    "lint": "ruff check . && black --check . && mypy .",
+    "format": "black . && ruff format ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
+
