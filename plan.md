@@ -26,11 +26,11 @@
 - [ ] Establish Playwright (or Cypress) e2e smoke test covering login journey.
 
 #### Phase 2 — User Profile & Persistence Layer (Estimated: Week 2-3)
-- [ ] Model MongoDB collections for users, preferences, interaction logs; add Pydantic schemas.
-- [ ] Implement `user_profile.py` CRUD APIs, integrate JWT session management between frontend and backend.
-- [ ] Stand up Redis (local + Docker) for session caching and chat memory stub.
-- [ ] Integrate AWS Secrets Manager client for storing credentials (OAuth, DB URI, LLM keys).
-- [ ] Add backend unit tests for auth and profile modules; extend e2e test for dashboard rendering personalized stub.
+- [x] Model MongoDB collections for users, preferences, interaction logs; add Pydantic schemas.
+- [x] Implement `user_profile.py` CRUD APIs, integrate JWT session management between frontend and backend.
+- [x] Stand up Redis (local + Docker) for session caching and chat memory stub.
+- [x] Integrate AWS Secrets Manager client for storing credentials (OAuth, DB URI, LLM keys).
+- [x] Add backend unit tests for auth and profile modules; extend e2e test for dashboard rendering personalized stub.
 
 #### Phase 3 — Recommendation Engine & Vector Store (Estimated: Week 3-4)
 - [ ] Curate initial Bacolod attractions dataset; embed using chosen LLM embeddings model.
