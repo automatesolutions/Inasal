@@ -40,11 +40,11 @@
 - [x] Write unit tests for recommendation scoring logic and retrieval adapters.
 
 #### Phase 4 — RAG Engine & Real-Time Enrichment (Estimated: Week 4-5)
-- [ ] Implement `rag_engine.py` to orchestrate weather, events, and local news sources (RSS/API) with caching strategy.
-- [ ] Compose Retrieval-Augmented prompts that blend live data with vector hits.
-- [ ] Add monitoring hooks (structured logging, fallback flows when external data unavailable).
-- [ ] Extend e2e tests to validate itinerary updates when external data changes (mock APIs).
-- [ ] Define evaluation script for LLM responses (quality + safety heuristics).
+- [x] Implement `rag_engine.py` to orchestrate weather, events, and local news sources (RSS/API) with caching strategy.
+- [x] Compose Retrieval-Augmented prompts that blend live data with vector hits.
+- [x] Add monitoring hooks (structured logging, fallback flows when external data unavailable).
+- [x] Extend e2e tests to validate itinerary updates when external data changes (mock APIs).
+- [x] Define evaluation script for LLM responses (quality + safety heuristics).
 
 #### Phase 5 — LangGraph Flows & Itinerary Builder (Estimated: Week 5-6)
 - [ ] Design LangGraph workflow for multi-day itinerary planning with branching nodes (explore, refine, confirm).

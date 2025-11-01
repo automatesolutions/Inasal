@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     max_recommendation_limit: int = 20
     embedding_dimension: int = 1536  # OpenAI text-embedding-3-small dimension
 
+    # RAG & Real-Time Data Settings
+    weather_api_key: str = ""  # OpenWeatherMap API key
+    weather_cache_ttl: int = 3600  # 1 hour
+    events_cache_ttl: int = 1800  # 30 minutes
+    news_cache_ttl: int = 3600  # 1 hour
+    enable_weather_api: bool = False
+    enable_events_api: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

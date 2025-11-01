@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import connect_to_mongo, close_mongo_connection
 from app.redis_client import redis_client
-from app.routes import auth_routes, chat_routes, profile_routes, recommendation_routes
+from app.routes import auth_routes, chat_routes, profile_routes, recommendation_routes, rag_routes
 from app.recommendation import recommendation_engine
 
 
@@ -45,6 +45,7 @@ app.include_router(auth_routes.router)
 app.include_router(chat_routes.router)
 app.include_router(profile_routes.router)
 app.include_router(recommendation_routes.router)
+app.include_router(rag_routes.router)
 
 
 @app.get("/")

@@ -7,9 +7,11 @@ from typing import List, Optional
 from app.auth import get_current_user
 from app.user_profile import UserProfileService
 from app.recommendation import RecommendationEngine, recommendation_engine
+from app.rag_engine import RAGEngine
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 profile_service = UserProfileService()
+rag_engine = RAGEngine()
 
 
 class RecommendationResponse(BaseModel):
@@ -42,9 +44,14 @@ async def get_recommendations(
         profile, query=query, limit=limit
     )
 
+    # Enrich with real-time context (weather, events)
+    enriched_recommendations = await rag_engine.enrich_recommendations_with_context(
+        recommendations
+    )
+
     return RecommendationResponse(
-        recommendations=recommendations,
-        count=len(recommendations),
+        recommendations=enriched_recommendations,
+        count=len(enriched_recommendations),
     )
 
 
