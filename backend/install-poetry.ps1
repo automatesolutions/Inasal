@@ -1,7 +1,14 @@
 # PowerShell script to add Poetry to PATH and install dependencies
 
 Write-Host "Adding Poetry to PATH..." -ForegroundColor Yellow
-$poetryPath = "$env:APPDATA\Roaming\Python\Python313\Scripts"
+# $env:APPDATA already includes "Roaming", so don't add it again
+# The actual path is: C:\Users\jonel\AppData\Roaming\Python\Python313\Scripts
+$poetryPath = "$env:APPDATA\Python\Python313\Scripts"
+
+# If that doesn't work, try the direct path
+if (-not (Test-Path "$poetryPath\poetry.exe")) {
+    $poetryPath = "C:\Users\jonel\AppData\Roaming\Python\Python313\Scripts"
+}
 
 # Check if Poetry exists
 if (Test-Path "$poetryPath\poetry.exe") {
