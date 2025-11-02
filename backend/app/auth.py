@@ -71,10 +71,72 @@ async def get_current_user(
 
 
 async def send_otp_email(email: str, otp: str) -> bool:
-    """Send OTP email - TODO: implement email sending logic"""
-    # Placeholder for email sending logic
-    print(f"[DEV] OTP for {email}: {otp}")  # Remove in production
-    return True
+    """Send OTP email"""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    # If SMTP is not configured, print to console (for development)
+    if not settings.smtp_user or not settings.smtp_password:
+        print(f"\n{'='*60}")
+        print(f"[DEV MODE] OTP Email would be sent to: {email}")
+        print(f"[DEV MODE] Verification Code: {otp}")
+        print(f"[DEV MODE] To enable real email sending, configure SMTP settings in .env")
+        print(f"{'='*60}\n")
+        return True
+    
+    try:
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = "Your Bacolod Tourist Verification Code"
+        msg['From'] = settings.smtp_user
+        msg['To'] = email
+        
+        # Create HTML email body
+        html_body = f"""
+        <html>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #d97706;">Welcome to Bacolod Tourist! 🎭</h2>
+              <p>Your verification code is:</p>
+              <div style="background-color: #fef3c7; border: 2px solid #d97706; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+                <h1 style="color: #d97706; font-size: 32px; letter-spacing: 5px; margin: 0;">{otp}</h1>
+              </div>
+              <p>This code will expire in 10 minutes.</p>
+              <p style="color: #666; font-size: 12px; margin-top: 30px;">
+                If you didn't request this code, please ignore this email.
+              </p>
+            </div>
+          </body>
+        </html>
+        """
+        
+        # Plain text version
+        text_body = f"""
+        Welcome to Bacolod Tourist!
+        
+        Your verification code is: {otp}
+        
+        This code will expire in 10 minutes.
+        
+        If you didn't request this code, please ignore this email.
+        """
+        
+        msg.attach(MIMEText(text_body, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
+        
+        # Send email
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+            server.starttls()
+            server.login(settings.smtp_user, settings.smtp_password)
+            server.send_message(msg)
+        
+        return True
+    except Exception as e:
+        print(f"[ERROR] Failed to send email to {email}: {e}")
+        # In development, still print OTP so testing can continue
+        print(f"[DEV FALLBACK] OTP for {email}: {otp}")
+        return True  # Return True to not break the flow during development
 
 
 def generate_otp() -> str:

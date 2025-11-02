@@ -1,21 +1,46 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { authApi } from "@/lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement OTP sending
-    setOtpSent(true);
+    setError("");
+    setLoading(true);
+
+    try {
+      await authApi.sendOTP(email);
+      setOtpSent(true);
+    } catch (err: any) {
+      setError(err.detail || "Failed to send verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement OTP verification
+    setError("");
+    setLoading(true);
+
+    try {
+      await authApi.verifyOTP(email, otp);
+      // Redirect to dashboard on successful login
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.detail || "Invalid verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -29,6 +54,12 @@ export default function LoginPage() {
             Enter your email to receive a verification code
           </p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
 
         {!otpSent ? (
           <form onSubmit={handleSendOTP} className="space-y-4">
@@ -45,15 +76,17 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                disabled={loading}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="your.email@example.com"
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+              disabled={loading}
+              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Send Verification Code
+              {loading ? "Sending..." : "Send Verification Code"}
             </button>
           </form>
         ) : (
@@ -69,26 +102,36 @@ export default function LoginPage() {
                 type="text"
                 id="otp"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 required
                 maxLength={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-2xl tracking-widest"
+                disabled={loading}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-2xl tracking-widest disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="000000"
               />
               <p className="text-sm text-gray-500 mt-2">
                 We sent a code to {email}
               </p>
+              <p className="text-xs text-amber-600 mt-1">
+                Check your email inbox for the 6-digit code
+              </p>
             </div>
             <button
               type="submit"
-              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+              disabled={loading || otp.length !== 6}
+              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Verify & Login
+              {loading ? "Verifying..." : "Verify & Login"}
             </button>
             <button
               type="button"
-              onClick={() => setOtpSent(false)}
-              className="w-full text-amber-600 py-2 hover:text-amber-700"
+              onClick={() => {
+                setOtpSent(false);
+                setOtp("");
+                setError("");
+              }}
+              disabled={loading}
+              className="w-full text-amber-600 py-2 hover:text-amber-700 disabled:opacity-50"
             >
               Change Email
             </button>
