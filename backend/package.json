@@ -7,6 +7,7 @@
     "dev": "poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
     "build": "echo 'Backend build step - install dependencies via poetry'",
     "test": "poetry run pytest",
+    "test-core": "poetry run python scripts/test_core_functionality.py",
     "lint": "poetry run ruff check . && poetry run black --check . && poetry run mypy .",
     "format": "poetry run black . && poetry run ruff format .",
     "ingest": "poetry run python scripts/ingest_attractions.py",
