@@ -16,10 +16,23 @@ pip install poetry
 ```
 
 After installation, you may need to add Poetry to your PATH:
+
+**Quick fix (for current session):**
 ```powershell
-# Add to PATH (restart terminal after)
-$env:Path += ";$env:APPDATA\Python\Scripts"
+# Add to PATH for this session
+$env:Path += ";$env:APPDATA\Roaming\Python\Python313\Scripts"
 ```
+
+**Or use full path:**
+```powershell
+& "$env:APPDATA\Roaming\Python\Python313\Scripts\poetry.exe" install
+```
+
+**Permanent fix (add to PATH permanently):**
+1. Open System Properties → Environment Variables
+2. Under "User variables", find "Path" and click Edit
+3. Click "New" and add: `C:\Users\jonel\AppData\Roaming\Python\Python313\Scripts`
+4. Click OK and restart your terminal
 
 ### Option 3: Using pipx (If you have pipx)
 ```powershell
