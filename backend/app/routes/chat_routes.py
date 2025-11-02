@@ -1,13 +1,20 @@
 """Chat API routes"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.auth import get_current_user
-from app.chat_agent import ChatAgent
+
+# Conditionally import ChatAgent
+try:
+    from app.chat_agent import ChatAgent
+    chat_agent = ChatAgent()
+    HAS_CHAT_AGENT = True
+except ImportError:
+    chat_agent = None
+    HAS_CHAT_AGENT = False
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
-chat_agent = ChatAgent()
 
 
 class ChatMessage(BaseModel):

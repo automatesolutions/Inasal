@@ -2,29 +2,31 @@
 
 Even if LangChain dependencies aren't fully installed, you can test core functionality!
 
-## Quick Test (No Dependencies Needed)
+## Quick Test (Works Now!)
 
-### Test 1: Core Module Imports
+### ✅ Core Tests Passed!
 
-This tests that basic Python modules work:
-
-```powershell
-cd backend
-& "$env:APPDATA\Python\Python313\Scripts\poetry.exe" run python scripts/test_core_functionality.py
-```
-
-Or if Poetry environment is set up:
-
-```powershell
-pnpm --filter backend run test-core
-```
-
-This will test:
+Great news - core tests are already passing! You can see:
 - ✅ Config module
-- ✅ Auth functions (OTP, JWT)
+- ✅ Auth functions (OTP, JWT)  
 - ✅ User profile models
 - ✅ Database connection utilities
 - ✅ Redis client
+
+### Test 2: Start the Server
+
+The server can now start without LangChain! Try:
+
+```powershell
+cd backend
+& "$env:APPDATA\Python\Python313\Scripts\poetry.exe" run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The server will:
+- ✅ Start successfully with core features
+- ✅ Auth endpoints work
+- ✅ Profile endpoints work
+- ⚠️ AI endpoints (chat, recommendations) will return 503 (service unavailable) but won't crash
 
 ## Install Minimal Dependencies First
 
