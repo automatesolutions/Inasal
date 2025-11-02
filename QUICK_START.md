@@ -13,9 +13,11 @@ cd ..
 **Or manually:**
 ```powershell
 cd backend
-& "$env:APPDATA\Roaming\Python\Python313\Scripts\poetry.exe" install
+& "$env:APPDATA\Python\Python313\Scripts\poetry.exe" install
 cd ..
 ```
+
+**Note:** The `&` operator is required in PowerShell to execute a command from a string path!
 
 ## Step 2: Verify Setup
 
