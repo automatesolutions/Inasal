@@ -10,7 +10,8 @@
     "lint": "ruff check . && black --check . && mypy .",
     "format": "black . && ruff format .",
     "ingest": "python scripts/ingest_attractions.py",
-    "evaluate": "python scripts/evaluate_llm_responses.py"
+    "evaluate": "python scripts/evaluate_llm_responses.py",
+    "test-api": "python scripts/test_api_endpoints.py"
   },
   "keywords": [],
   "author": "",
