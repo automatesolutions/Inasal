@@ -1,13 +1,19 @@
 """RAG and real-time data API routes"""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Optional
 
-from app.rag_engine import RAGEngine
+# Conditionally import RAG engine
+try:
+    from app.rag_engine import RAGEngine
+    rag_engine = RAGEngine()
+    HAS_RAG = True
+except ImportError:
+    rag_engine = None
+    HAS_RAG = False
 
 router = APIRouter(prefix="/api/rag", tags=["rag"])
-rag_engine = RAGEngine()
 
 
 class WeatherResponse(BaseModel):
@@ -44,6 +50,11 @@ async def get_weather(
     use_cache: bool = Query(default=True),
 ):
     """Get current weather information"""
+    if not HAS_RAG or not rag_engine:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG service is not available. LangChain dependencies are not installed.",
+        )
     weather = await rag_engine.get_weather_info(location, use_cache=use_cache)
     return WeatherResponse(weather=weather)
 
@@ -54,6 +65,11 @@ async def get_events(
     use_cache: bool = Query(default=True),
 ):
     """Get local events"""
+    if not HAS_RAG or not rag_engine:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG service is not available. LangChain dependencies are not installed.",
+        )
     events = await rag_engine.get_local_events(date, use_cache=use_cache)
     return EventsResponse(events=events, count=len(events))
 
@@ -64,6 +80,11 @@ async def get_news(
     use_cache: bool = Query(default=True),
 ):
     """Get local news"""
+    if not HAS_RAG or not rag_engine:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG service is not available. LangChain dependencies are not installed.",
+        )
     news = await rag_engine.get_local_news(limit, use_cache=use_cache)
     return NewsResponse(news=news, count=len(news))
 
@@ -71,6 +92,11 @@ async def get_news(
 @router.post("/local-tips", response_model=LocalTipsResponse)
 async def get_local_tips(request: LocalTipsRequest):
     """Get AI-generated local tips with RAG"""
+    if not HAS_RAG or not rag_engine:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="RAG service is not available. LangChain dependencies are not installed.",
+        )
     tip = await rag_engine.get_local_tips(request.query, request.context)
     return LocalTipsResponse(tip=tip)
 
