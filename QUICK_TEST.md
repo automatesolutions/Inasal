@@ -2,12 +2,21 @@
 
 ## Prerequisites Setup
 
-1. **Install pnpm dependencies** (if not done):
+1. **Install Poetry** (if not installed):
+   ```powershell
+   # Windows (PowerShell)
+   pip install poetry
+   # OR use official installer (see INSTALL_POETRY.md)
+   ```
+   
+   Verify: `poetry --version`
+
+2. **Install pnpm dependencies** (if not done):
    ```bash
    pnpm install
    ```
 
-2. **Install Python dependencies via Poetry**:
+3. **Install Python dependencies via Poetry**:
    ```bash
    cd backend
    poetry install

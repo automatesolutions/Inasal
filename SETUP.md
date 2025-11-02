@@ -11,11 +11,30 @@ Follow these steps to get the Bacolod Tourist app running locally.
    ```
 
 2. **Python** (>= 3.11) and **Poetry**
+   
+   **Windows (PowerShell):**
+   ```powershell
+   # Install Poetry using the official installer
+   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+   
+   # Add Poetry to PATH (restart terminal after this)
+   $env:Path += ";$env:APPDATA\Python\Scripts"
+   ```
+   
+   **Or using pip (simpler but not recommended):**
    ```bash
-   # Install Poetry
    pip install poetry
-   # or
+   ```
+   
+   **Linux/Mac:**
+   ```bash
    curl -sSL https://install.python-poetry.org | python3 -
+   # Then add to PATH (usually ~/.local/bin)
+   ```
+   
+   **Verify installation:**
+   ```bash
+   poetry --version
    ```
 
 3. **Docker** and **Docker Compose** (for MongoDB and Redis)
