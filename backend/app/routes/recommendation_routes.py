@@ -4,8 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from typing import List, Optional
 
-from fastapi import HTTPException, status
-
 from app.auth import get_current_user
 from app.user_profile import UserProfileService
 
@@ -22,7 +20,6 @@ except ImportError:
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 profile_service = UserProfileService()
-rag_engine = RAGEngine()
 
 
 class RecommendationResponse(BaseModel):
