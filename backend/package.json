@@ -11,10 +11,10 @@
     "format": "poetry run black . && poetry run ruff format .",
     "ingest": "poetry run python scripts/ingest_attractions.py",
     "evaluate": "poetry run python scripts/evaluate_llm_responses.py",
-    "test-api": "poetry run python scripts/test_api_endpoints.py"
+    "test-api": "poetry run python scripts/test_api_endpoints.py",
+    "install-deps": "powershell -ExecutionPolicy Bypass -File install-poetry.ps1"
   },
   "keywords": [],
   "author": "",
   "license": "MIT"
 }
-
