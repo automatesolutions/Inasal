@@ -2,7 +2,16 @@
 
 import pytest
 from datetime import datetime
-from app.rag_engine import RAGEngine
+
+# Conditionally import RAG engine
+try:
+    from app.rag_engine import RAGEngine
+    HAS_RAG = True
+except ImportError:
+    HAS_RAG = False
+    RAGEngine = None
+
+pytestmark = pytest.mark.skipif(not HAS_RAG, reason="LangChain dependencies not available")
 
 
 @pytest.mark.asyncio

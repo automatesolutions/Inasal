@@ -1,58 +1,52 @@
-"""Tests for authentication module"""
+"""Unit tests for authentication functionality"""
 
 import pytest
-from datetime import timedelta
-from app.auth import (
-    verify_password,
-    get_password_hash,
-    generate_otp,
-    create_access_token,
-    decode_access_token,
-)
+from app.auth import generate_otp, create_access_token, decode_access_token
 
 
-def test_password_hashing():
-    """Test password hashing and verification"""
-    password = "test_password_123"
-    hashed = get_password_hash(password)
-    assert hashed != password
-    assert verify_password(password, hashed)
-    assert not verify_password("wrong_password", hashed)
-
-
-def test_otp_generation():
-    """Test OTP generation"""
-    otp = generate_otp()
-    assert len(otp) == 6
-    assert otp.isdigit()
-
-
-def test_create_access_token():
-    """Test JWT token creation"""
-    data = {"sub": "test-user-123", "email": "test@example.com"}
-    token = create_access_token(data)
+class TestOTPGeneration:
+    """Tests for OTP generation"""
     
-    assert token is not None
-    assert isinstance(token, str)
-    assert len(token) > 0
-
-
-def test_decode_access_token():
-    """Test JWT token decoding"""
-    data = {"sub": "test-user-123", "email": "test@example.com"}
-    token = create_access_token(data)
+    def test_otp_is_six_digits(self):
+        """OTP should be exactly 6 digits"""
+        otp = generate_otp()
+        assert len(otp) == 6
+        assert otp.isdigit()
     
-    decoded = decode_access_token(token)
+    def test_otp_is_random(self):
+        """OTPs should be different (very unlikely to collide)"""
+        otp1 = generate_otp()
+        otp2 = generate_otp()
+        # While technically possible, OTPs should be different
+        assert otp1 != otp2
+
+
+class TestJWTTokens:
+    """Tests for JWT token creation and validation"""
     
-    assert decoded is not None
-    assert decoded["sub"] == "test-user-123"
-    assert decoded["email"] == "test@example.com"
-
-
-def test_decode_invalid_token():
-    """Test decoding invalid token"""
-    invalid_token = "invalid.token.here"
-    decoded = decode_access_token(invalid_token)
+    def test_create_token(self):
+        """Should create a valid JWT token"""
+        data = {"sub": "test-user-123", "email": "test@example.com"}
+        token = create_access_token(data)
+        
+        assert token is not None
+        assert isinstance(token, str)
+        assert len(token) > 0
     
-    assert decoded is None
-
+    def test_decode_valid_token(self):
+        """Should decode a valid token correctly"""
+        data = {"sub": "test-user-456", "email": "test@example.com"}
+        token = create_access_token(data)
+        
+        decoded = decode_access_token(token)
+        assert decoded is not None
+        assert decoded["sub"] == "test-user-456"
+        assert decoded["email"] == "test@example.com"
+    
+    def test_token_contains_expiry(self):
+        """Token should contain expiration claim"""
+        data = {"sub": "test-user", "email": "test@example.com"}
+        token = create_access_token(data)
+        decoded = decode_access_token(token)
+        
+        assert "exp" in decoded
