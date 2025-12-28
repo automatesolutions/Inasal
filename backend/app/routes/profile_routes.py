@@ -10,6 +10,7 @@ from app.user_profile import (
     PersonalityTraits,
     UserPreferences,
 )
+from app.strapi_client import strapi_client
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 profile_service = UserProfileService()
@@ -56,6 +57,18 @@ async def update_personality(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Profile not found",
         )
+    
+    # Sync to Strapi if configured
+    if strapi_client.api_token:
+        try:
+            await strapi_client.update_user_profile(
+                current_user["user_id"],
+                personality=request.personality.model_dump()
+            )
+        except Exception as e:
+            # Log but don't fail the request
+            print(f"⚠️  Failed to sync personality to Strapi: {e}")
+    
     return ProfileResponse(profile=profile)
 
 
@@ -73,6 +86,18 @@ async def update_preferences(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Profile not found",
         )
+    
+    # Sync to Strapi if configured
+    if strapi_client.api_token:
+        try:
+            await strapi_client.update_user_profile(
+                current_user["user_id"],
+                preferences=request.preferences.model_dump()
+            )
+        except Exception as e:
+            # Log but don't fail the request
+            print(f"⚠️  Failed to sync preferences to Strapi: {e}")
+    
     return ProfileResponse(profile=profile)
 
 

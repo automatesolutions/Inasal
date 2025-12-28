@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_shared_locations",
+  "info": {
+    "displayName": "Location"
+  },
+  "options": {},
+  "attributes": {
+    "address": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "biginteger"
+    },
+    "longitude": {
+      "type": "biginteger"
+    }
+  },
+  "config": {}
+}

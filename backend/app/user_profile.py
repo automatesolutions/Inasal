@@ -6,7 +6,7 @@ from bson import ObjectId
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from app.database import get_database
+from app.database import get_database, HAS_MONGODB
 from app.models.interaction_log import InteractionLog, InteractionLogCreate
 
 
@@ -59,149 +59,223 @@ class UserProfileService:
 
     async def get_profile(self, user_id: str) -> Optional[UserProfile]:
         """Get user profile by ID"""
-        db = get_database()
-        collection = db[self.COLLECTION_NAME]
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        profile_doc = await collection.find_one({"user_id": user_id})
-        if not profile_doc:
-            return None
-        
-        # Convert MongoDB ObjectId to string
-        if "_id" in profile_doc:
-            profile_doc["_id"] = str(profile_doc["_id"])
-        
-        return UserProfile(**profile_doc)
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+            
+            profile_doc = await collection.find_one({"user_id": user_id})
+            if not profile_doc:
+                return None
+            
+            # Convert MongoDB ObjectId to string
+            if "_id" in profile_doc:
+                profile_doc["_id"] = str(profile_doc["_id"])
+            
+            return UserProfile(**profile_doc)
+        except Exception:
+            return None  # Fallback to Strapi
 
     async def get_profile_by_email(self, email: str) -> Optional[UserProfile]:
         """Get user profile by email"""
-        db = get_database()
-        collection = db[self.COLLECTION_NAME]
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        profile_doc = await collection.find_one({"email": email})
-        if not profile_doc:
-            return None
-        
-        if "_id" in profile_doc:
-            profile_doc["_id"] = str(profile_doc["_id"])
-        
-        return UserProfile(**profile_doc)
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+            
+            profile_doc = await collection.find_one({"email": email})
+            if not profile_doc:
+                return None
+            
+            if "_id" in profile_doc:
+                profile_doc["_id"] = str(profile_doc["_id"])
+            
+            return UserProfile(**profile_doc)
+        except Exception:
+            return None  # Fallback to Strapi
 
-    async def create_profile(self, email: EmailStr, user_id: str, name: Optional[str] = None) -> UserProfile:
+    async def create_profile(self, email: EmailStr, user_id: str, name: Optional[str] = None) -> Optional[UserProfile]:
         """Create a new user profile"""
-        db = get_database()
-        collection = db[self.COLLECTION_NAME]
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        # Check if profile already exists
-        existing = await self.get_profile(user_id)
-        if existing:
-            return existing
-        
-        profile = UserProfile(
-            user_id=user_id,
-            email=email,
-            name=name,
-        )
-        
-        profile_dict = profile.model_dump(exclude={"id"}, by_alias=True)
-        result = await collection.insert_one(profile_dict)
-        
-        # Fetch the created profile
-        created_doc = await collection.find_one({"_id": result.inserted_id})
-        if created_doc and "_id" in created_doc:
-            created_doc["_id"] = str(created_doc["_id"])
-        
-        return UserProfile(**created_doc)
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+            
+            # Check if profile already exists
+            existing = await self.get_profile(user_id)
+            if existing:
+                return existing
+            
+            profile = UserProfile(
+                user_id=user_id,
+                email=email,
+                name=name,
+            )
+            
+            profile_dict = profile.model_dump(exclude={"id"}, by_alias=True)
+            result = await collection.insert_one(profile_dict)
+            
+            # Fetch the created profile
+            created_doc = await collection.find_one({"_id": result.inserted_id})
+            if created_doc and "_id" in created_doc:
+                created_doc["_id"] = str(created_doc["_id"])
+            
+            return UserProfile(**created_doc)
+        except Exception:
+            return None  # Fallback to Strapi
 
     async def update_personality(
         self, user_id: str, traits: PersonalityTraits
     ) -> Optional[UserProfile]:
         """Update user personality traits"""
-        db = get_database()
-        collection = db[self.COLLECTION_NAME]
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        update_data = {
-            "$set": {
-                "personality": traits.model_dump(),
-                "updated_at": datetime.utcnow()
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+            
+            update_data = {
+                "$set": {
+                    "personality": traits.model_dump(),
+                    "updated_at": datetime.utcnow()
+                }
             }
-        }
-        
-        result = await collection.update_one(
-            {"user_id": user_id},
-            update_data
-        )
-        
-        if result.modified_count == 0:
-            return None
-        
-        return await self.get_profile(user_id)
+            
+            result = await collection.update_one(
+                {"user_id": user_id},
+                update_data
+            )
+            
+            if result.modified_count == 0:
+                return None
+            
+            return await self.get_profile(user_id)
+        except Exception:
+            return None  # Fallback to Strapi
 
     async def update_preferences(
         self, user_id: str, preferences: UserPreferences
     ) -> Optional[UserProfile]:
         """Update user preferences"""
-        db = get_database()
-        collection = db[self.COLLECTION_NAME]
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        update_data = {
-            "$set": {
-                "preferences": preferences.model_dump(),
-                "updated_at": datetime.utcnow()
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+            
+            update_data = {
+                "$set": {
+                    "preferences": preferences.model_dump(),
+                    "updated_at": datetime.utcnow()
+                }
             }
-        }
-        
-        result = await collection.update_one(
-            {"user_id": user_id},
-            update_data
-        )
-        
-        if result.modified_count == 0:
-            return None
-        
-        return await self.get_profile(user_id)
+            
+            result = await collection.update_one(
+                {"user_id": user_id},
+                update_data
+            )
+            
+            if result.modified_count == 0:
+                return None
+            
+            return await self.get_profile(user_id)
+        except Exception:
+            return None  # Fallback to Strapi
 
     async def add_travel_history(self, user_id: str, history_item: dict) -> Optional[UserProfile]:
         """Add an item to travel history"""
-        db = get_database()
-        collection = db[self.COLLECTION_NAME]
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        update_data = {
-            "$push": {"travel_history": history_item},
-            "$set": {"updated_at": datetime.utcnow()}
-        }
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+            
+            update_data = {
+                "$push": {"travel_history": history_item},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+            
+            result = await collection.update_one(
+                {"user_id": user_id},
+                update_data
+            )
+            
+            if result.modified_count == 0:
+                return None
+            
+            return await self.get_profile(user_id)
+        except Exception:
+            return None  # Fallback to Strapi
+
+    async def update_name(self, user_id: str, name: str) -> Optional[UserProfile]:
+        """Update the stored display name for a user"""
+        if not HAS_MONGODB:
+            return None  # Use Strapi instead
         
-        result = await collection.update_one(
-            {"user_id": user_id},
-            update_data
-        )
-        
-        if result.modified_count == 0:
-            return None
-        
-        return await self.get_profile(user_id)
+        try:
+            db = get_database()
+            collection = db[self.COLLECTION_NAME]
+
+            result = await collection.update_one(
+                {"user_id": user_id},
+                {
+                    "$set": {
+                        "name": name,
+                        "updated_at": datetime.utcnow(),
+                    }
+                },
+            )
+
+            if result.modified_count == 0:
+                return None
+
+            return await self.get_profile(user_id)
+        except Exception:
+            return None  # Fallback to Strapi
 
     async def log_interaction(self, log: InteractionLogCreate) -> bool:
         """Log user interaction"""
-        db = get_database()
-        collection = db["interaction_logs"]
+        if not HAS_MONGODB:
+            return False  # Use Strapi instead
         
-        interaction = InteractionLog(**log.model_dump())
-        await collection.insert_one(interaction.model_dump(by_alias=True))
-        return True
+        try:
+            db = get_database()
+            collection = db["interaction_logs"]
+            
+            interaction = InteractionLog(**log.model_dump())
+            await collection.insert_one(interaction.model_dump(by_alias=True))
+            return True
+        except Exception:
+            return False  # Fallback to Strapi
 
     async def get_interaction_history(self, user_id: str, limit: int = 100) -> list[dict]:
         """Get user interaction history"""
-        db = get_database()
-        collection = db["interaction_logs"]
+        if not HAS_MONGODB:
+            return []  # Use Strapi instead
         
-        cursor = collection.find({"user_id": user_id}).sort("timestamp", -1).limit(limit)
-        logs = []
-        async for doc in cursor:
-            if "_id" in doc:
-                doc["_id"] = str(doc["_id"])
-            if "timestamp" in doc and isinstance(doc["timestamp"], datetime):
-                doc["timestamp"] = doc["timestamp"].isoformat()
-            logs.append(doc)
-        
-        return logs
+        try:
+            db = get_database()
+            collection = db["interaction_logs"]
+            
+            cursor = collection.find({"user_id": user_id}).sort("timestamp", -1).limit(limit)
+            logs = []
+            async for doc in cursor:
+                if "_id" in doc:
+                    doc["_id"] = str(doc["_id"])
+                if "timestamp" in doc and isinstance(doc["timestamp"], datetime):
+                    doc["timestamp"] = doc["timestamp"].isoformat()
+                logs.append(doc)
+            
+            return logs
+        except Exception:
+            return []  # Fallback to Strapi
 

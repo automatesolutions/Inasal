@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Deployment Guide - Bacolod Tourist App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        h3 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        h4 {
+            color: #666;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+        
+        li {
+            margin-bottom: 10px;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+        
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        pre code {
+            background: none;
+            color: #ecf0f1;
+            padding: 0;
+        }
+        
+        .toc {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        
+        .architecture {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: monospace;
+            white-space: pre;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+        
+        .checklist {
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .checklist li:before {
+            content: "☐ ";
+            margin-right: 10px;
+        }
+        
+        .checklist li.checked:before {
+            content: "☑ ";
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .badge-free {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-paid {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+            border-radius: 3px;
+        }
+        
+        .step-number {
+            font-weight: bold;
+            color: #3498db;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Complete Deployment Guide - Bacolod Tourist App</h1>
+        
+        <div class="info">
+            <strong>📋 Overview:</strong> This guide covers deploying your full-stack application to production with staging and production environments using Railway, Vercel, MongoDB Atlas, and Redis Cloud.
+        </div>
+        
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+                <li><a href="#overview">1. Overview</a></li>
+                <li><a href="#prerequisites">2. Prerequisites</a></li>
+                <li><a href="#database-setup">3. Database Setup</a></li>
+                <li><a href="#git-branch-strategy">4. Git Branch Strategy</a></li>
+                <li><a href="#railway-deployment">5. Railway Deployment</a></li>
+                <li><a href="#vercel-deployment">6. Vercel Deployment</a></li>
+                <li><a href="#environment-configuration">7. Environment Configuration</a></li>
+                <li><a href="#testing">8. Testing Your Deployment</a></li>
+                <li><a href="#troubleshooting">9. Troubleshooting</a></li>
+                <li><a href="#maintenance">10. Maintenance & Updates</a></li>
+            </ul>
+        </div>
+        
+        <h2 id="overview">1. Overview</h2>
+        
+        <h3>Architecture</h3>
+        <div class="architecture">┌─────────────────┐
+│   Frontend      │  Next.js 16 (Vercel)
+│   (Vercel)      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Backend       │  FastAPI (Railway)
+│   (Railway)     │
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌────────┐ ┌────────┐
+│ MongoDB│ │ Redis  │  Cloud Databases
+│ Atlas  │ │ Cloud  │
+└────────┘ └────────┘
+         │
+         ▼
+┌─────────────────┐
+│   Strapi CMS    │  Node.js (Railway)
+│   (Railway)     │
+└─────────────────┘</div>
+        
+        <h3>Environments</h3>
+        <ul>
+            <li><strong>Staging:</strong> Test environment for development (<code>staging</code> branch)</li>
+            <li><strong>Production:</strong> Live environment for users (<code>main</code> branch)</li>
+        </ul>
+        
+        <h2 id="prerequisites">2. Prerequisites</h2>
+        <p>Before starting, ensure you have:</p>
+        <ul class="checklist">
+            <li>GitHub account with your repository</li>
+            <li>Railway account (sign up at <a href="https://railway.app">railway.app</a>)</li>
+            <li>Vercel account (sign up at <a href="https://vercel.com">vercel.com</a>)</li>
+            <li>MongoDB Atlas account (free tier available)</li>
+            <li>Redis Cloud account (free tier available)</li>
+            <li>Anthropic API key (for AI features)</li>
+            <li>Email account for SMTP (Gmail works)</li>
+        </ul>
+        
+        <h2 id="database-setup">3. Database Setup</h2>
+        
+        <h3>Step 1: MongoDB Atlas Setup</h3>
+        
+        <div class="step">
+            <span class="step-number">1.</span> <strong>Create Account</strong><br>
+            Go to <a href="https://www.mongodb.com/cloud/atlas/register">mongodb.com/cloud/atlas/register</a> and sign up for free account
+        </div>
+        
+        <div class="step">
+            <span class="step-number">2.</span> <strong>Create Cluster</strong><br>
+            Click "Build a Database" → Select <strong>M0 Free</strong> tier → Choose cloud provider and region → Click "Create"
+        </div>
+        
+        <div class="step">
+            <span class="step-number">3.</span> <strong>Create Database User</strong><br>
+            Go to "Database Access" → Click "Add New Database User" → Choose "Password" authentication → Set username and password → Click "Add User"
+        </div>
+        
+        <div class="step">
+            <span class="step-number">4.</span> <strong>Configure Network Access</strong><br>
+            Go to "Network Access" → Click "Add IP Address" → Select "Allow Access from Anywhere" (<code>0.0.0.0/0</code>) → Click "Confirm"
+        </div>
+        
+        <div class="step">
+            <span class="step-number">5.</span> <strong>Get Connection String</strong><br>
+            Go to "Database" → "Connect" → Select "Connect your application" → Copy the connection string<br>
+            Format: <code>mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority</code><br>
+            Replace <code>&lt;password&gt;</code> with your actual password
+        </div>
+        
+        <div class="step">
+            <span class="step-number">6.</span> <strong>Create Databases</strong><br>
+            For staging: <code>bacolod_tourist_staging</code><br>
+            For production: <code>bacolod_tourist</code><br>
+            Update connection string: <code>...mongodb.net/bacolod_tourist_staging</code> or <code>...mongodb.net/bacolod_tourist</code>
+        </div>
+        
+        <h3>Step 2: Redis Cloud Setup</h3>
+        
+        <div class="step">
+            <span class="step-number">1.</span> <strong>Create Account</strong><br>
+            Go to <a href="https://redis.com/try-free/">redis.com/try-free/</a> and sign up for free account
+        </div>
+        
+        <div class="step">
+            <span class="step-number">2.</span> <strong>Create Database</strong><br>
+            Click "New Subscription" → Select "Free" tier → Choose cloud provider and region → Click "Activate"
+        </div>
+        
+        <div class="step">
+            <span class="step-number">3.</span> <strong>Create Databases</strong><br>
+            Create two databases:<br>
+            - <code>bacolod-staging</code> (for staging)<br>
+            - <code>bacolod-production</code> (for production)
+        </div>
+        
+        <div class="step">
+            <span class="step-number">4.</span> <strong>Get Connection Strings</strong><br>
+            Click on each database → Copy the connection string<br>
+            Format: <code>rediss://default:password@host:port</code>
+        </div>
+        
+        <h2 id="git-branch-strategy">4. Git Branch Strategy</h2>
+        
+        <h3>Branch Structure</h3>
+        <div class="architecture">main      → Production (live website)
+staging   → Staging (test website)</div>
+        
+        <h3>Create Staging Branch</h3>
+        <pre><code># Create and switch to staging branch
+git checkout -b staging
+
+# Push staging branch to GitHub
+git push -u origin staging</code></pre>
+        
+        <h3>Workflow</h3>
+        <div class="architecture">1. Make changes locally
+   ↓
+2. Commit and push to staging branch
+   ↓
+3. Auto-deploy to STAGING environment
+   ↓
+4. Test on staging URL
+   ↓
+5. If good → Merge to main branch
+   ↓
+6. Auto-deploy to PRODUCTION environment</div>
+        
+        <h2 id="railway-deployment">5. Railway Deployment</h2>
+        
+        <h3>Step 1: Create Railway Projects</h3>
+        <div class="step">
+            <span class="step-number">1.</span> <strong>Sign Up</strong><br>
+            Go to <a href="https://railway.app">railway.app</a> and sign up with GitHub
+        </div>
+        
+        <div class="step">
+            <span class="step-number">2.</span> <strong>Create Staging Project</strong><br>
+            Click "New Project" → Name: <code>Bacolod Tourist - STAGING</code> → Connect GitHub repository
+        </div>
+        
+        <div class="step">
+            <span class="step-number">3.</span> <strong>Create Production Project</strong><br>
+            Click "New Project" → Name: <code>Bacolod Tourist - PRODUCTION</code> → Connect GitHub repository
+        </div>
+        
+        <h3>Step 2: Deploy Backend (Staging)</h3>
+        <div class="step">
+            <span class="step-number">1.</span> In STAGING Project → Click "New Service" → "GitHub Repo" → Select repository → Select <code>backend</code> folder
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Settings → Source → Branch: <code>staging</code>
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Go to "Variables" tab → Add all staging environment variables (see Environment Configuration section)
+        </div>
+        <div class="step">
+            <span class="step-number">4.</span> Railway will automatically build and deploy → Copy the URL: <code>https://staging-backend.railway.app</code>
+        </div>
+        
+        <h3>Step 3: Deploy Backend (Production)</h3>
+        <div class="step">
+            <span class="step-number">1.</span> In PRODUCTION Project → Click "New Service" → "GitHub Repo" → Select <code>backend</code> folder
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Settings → Source → Branch: <code>main</code>
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Add all production environment variables
+        </div>
+        <div class="step">
+            <span class="step-number">4.</span> Copy the URL: <code>https://production-backend.railway.app</code>
+        </div>
+        
+        <h3>Step 4: Deploy Strapi (Staging)</h3>
+        <div class="step">
+            <span class="step-number">1.</span> In STAGING Project → Click "New Service" → Select <code>strapi-backend</code> folder
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Settings → Source → Branch: <code>staging</code>
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Add environment variables:
+            <pre><code>NODE_ENV=development
+HOST=0.0.0.0
+PORT=$PORT
+APP_KEYS=staging-key-1,staging-key-2,staging-key-3,staging-key-4
+API_TOKEN_SALT=staging-api-token-salt
+ADMIN_JWT_SECRET=staging-admin-jwt-secret
+TRANSFER_TOKEN_SALT=staging-transfer-token-salt
+JWT_SECRET=staging-jwt-secret</code></pre>
+            <div class="info">
+                <strong>Generate Random Keys:</strong><br>
+                PowerShell: <code>-join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | % {[char]$_})</code><br>
+                Bash: <code>openssl rand -base64 32</code>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">4.</span> Deploy → Copy URL: <code>https://staging-strapi.railway.app</code>
+        </div>
+        <div class="step">
+            <span class="step-number">5.</span> Visit <code>https://staging-strapi.railway.app/admin</code> → Create admin account → Create API token → Add to backend environment
+        </div>
+        
+        <h3>Step 5: Deploy Strapi (Production)</h3>
+        <p>Follow same steps as staging, but:</p>
+        <ul>
+            <li>Use PRODUCTION project</li>
+            <li>Set branch to <code>main</code></li>
+            <li>Set <code>NODE_ENV=production</code></li>
+            <li>Use production-specific keys</li>
+        </ul>
+        
+        <h2 id="vercel-deployment">6. Vercel Deployment</h2>
+        
+        <h3>Step 1: Deploy Staging Frontend</h3>
+        <div class="step">
+            <span class="step-number">1.</span> Go to <a href="https://vercel.com">vercel.com</a> → Sign up with GitHub
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Click "Add New" → "Project" → Import your GitHub repository
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Configure:
+            <ul>
+                <li>Project Name: <code>bacolod-tourist-staging</code></li>
+                <li>Framework Preset: <strong>Next.js</strong></li>
+                <li>Root Directory: <code>frontend</code></li>
+            </ul>
+        </div>
+        <div class="step">
+            <span class="step-number">4.</span> Settings → Git → Production Branch: <code>staging</code>
+        </div>
+        <div class="step">
+            <span class="step-number">5.</span> Add environment variables:
+            <pre><code>NEXT_PUBLIC_API_URL=https://staging-backend.railway.app
+NEXT_PUBLIC_STRAPI_URL=https://staging-strapi.railway.app</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-number">6.</span> Click "Deploy" → Copy URL: <code>https://bacolod-tourist-staging.vercel.app</code>
+        </div>
+        
+        <h3>Step 2: Deploy Production Frontend</h3>
+        <div class="step">
+            <span class="step-number">1.</span> Create new project → Import same repository
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Configure:
+            <ul>
+                <li>Project Name: <code>bacolod-tourist-production</code></li>
+                <li>Framework: Next.js</li>
+                <li>Root Directory: <code>frontend</code></li>
+            </ul>
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Settings → Git → Production Branch: <code>main</code>
+        </div>
+        <div class="step">
+            <span class="step-number">4.</span> Add environment variables:
+            <pre><code>NEXT_PUBLIC_API_URL=https://production-backend.railway.app
+NEXT_PUBLIC_STRAPI_URL=https://production-strapi.railway.app</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-number">5.</span> Deploy → Copy URL: <code>https://bacolod-tourist-production.vercel.app</code>
+        </div>
+        
+        <h2 id="environment-configuration">7. Environment Configuration</h2>
+        
+        <h3>Staging Environment Variables</h3>
+        
+        <h4>Backend (Railway - Staging)</h4>
+        <pre><code># Database
+database_url=mongodb+srv://username:password@cluster.mongodb.net/bacolod_tourist_staging?retryWrites=true&w=majority
+
+# Redis
+redis_url=rediss://default:password@staging-redis-host:port
+
+# JWT
+jwt_secret_key=staging-jwt-secret-key-32-chars-minimum
+jwt_algorithm=HS256
+jwt_expiration_hours=24
+
+# Production Settings
+dev_mode=True
+dev_mode_bypass_otp=True
+
+# Anthropic API
+anthropic_api_key=your-anthropic-api-key
+anthropic_model=claude-3-haiku-20240307
+
+# Email
+smtp_host=smtp.gmail.com
+smtp_port=587
+smtp_user=your-email@gmail.com
+smtp_password=your-gmail-app-password
+
+# CORS
+ALLOWED_ORIGINS=https://bacolod-tourist-staging.vercel.app,http://localhost:3000
+
+# Strapi
+strapi_url=https://staging-strapi.railway.app
+strapi_api_token=your-strapi-api-token
+
+# OAuth
+oauth_base_url=https://staging-backend.railway.app</code></pre>
+        
+        <h4>Frontend (Vercel - Staging)</h4>
+        <pre><code>NEXT_PUBLIC_API_URL=https://staging-backend.railway.app
+NEXT_PUBLIC_STRAPI_URL=https://staging-strapi.railway.app</code></pre>
+        
+        <h3>Production Environment Variables</h3>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Production environment variables must be different from staging, especially JWT secrets and database names.
+        </div>
+        
+        <h4>Backend (Railway - Production)</h4>
+        <pre><code># Database
+database_url=mongodb+srv://username:password@cluster.mongodb.net/bacolod_tourist?retryWrites=true&w=majority
+
+# Redis
+redis_url=rediss://default:password@production-redis-host:port
+
+# JWT (MUST be different from staging!)
+jwt_secret_key=production-super-secret-jwt-key-32-chars-minimum
+jwt_algorithm=HS256
+jwt_expiration_hours=24
+
+# Production Settings
+dev_mode=False
+dev_mode_bypass_otp=False
+
+# Anthropic API
+anthropic_api_key=your-anthropic-api-key
+anthropic_model=claude-3-haiku-20240307
+
+# Email
+smtp_host=smtp.gmail.com
+smtp_port=587
+smtp_user=your-email@gmail.com
+smtp_password=your-gmail-app-password
+
+# CORS
+ALLOWED_ORIGINS=https://bacolod-tourist-production.vercel.app,https://yourdomain.com
+
+# Strapi
+strapi_url=https://production-strapi.railway.app
+strapi_api_token=your-production-strapi-api-token
+
+# OAuth
+oauth_base_url=https://production-backend.railway.app</code></pre>
+        
+        <h4>Frontend (Vercel - Production)</h4>
+        <pre><code>NEXT_PUBLIC_API_URL=https://production-backend.railway.app
+NEXT_PUBLIC_STRAPI_URL=https://production-strapi.railway.app</code></pre>
+        
+        <h2 id="testing">8. Testing Your Deployment</h2>
+        
+        <h3>Test Staging Environment</h3>
+        <div class="step">
+            <span class="step-number">1.</span> Push to staging branch:
+            <pre><code>git checkout staging
+git add .
+git commit -m "Test deployment"
+git push origin staging</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Wait for deployment (check Railway/Vercel dashboards)
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Test URLs:
+            <ul>
+                <li>Frontend: <code>https://bacolod-tourist-staging.vercel.app</code></li>
+                <li>Backend: <code>https://staging-backend.railway.app/health</code></li>
+                <li>Strapi: <code>https://staging-strapi.railway.app/admin</code></li>
+            </ul>
+        </div>
+        <div class="step">
+            <span class="step-number">4.</span> Test features:
+            <ul class="checklist">
+                <li>User registration</li>
+                <li>User login</li>
+                <li>Chat functionality</li>
+                <li>Recommendations</li>
+                <li>Dashboard</li>
+                <li>API endpoints</li>
+            </ul>
+        </div>
+        
+        <h3>Test Production Environment</h3>
+        <div class="step">
+            <span class="step-number">1.</span> Merge to main:
+            <pre><code>git checkout main
+git merge staging
+git push origin main</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-number">2.</span> Verify all services are running
+        </div>
+        <div class="step">
+            <span class="step-number">3.</span> Monitor logs for errors
+        </div>
+        
+        <h2 id="troubleshooting">9. Troubleshooting</h2>
+        
+        <h3>Common Issues</h3>
+        
+        <h4>1. CORS Errors</h4>
+        <div class="warning">
+            <strong>Problem:</strong> Frontend can't connect to backend<br>
+            <strong>Solution:</strong> Check <code>ALLOWED_ORIGINS</code> in backend environment variables. Ensure frontend URL is included. Remove <code>*</code> in production.
+        </div>
+        
+        <h4>2. Database Connection Failed</h4>
+        <div class="warning">
+            <strong>Problem:</strong> Can't connect to MongoDB<br>
+            <strong>Solution:</strong> Verify connection string, check MongoDB Atlas network access (should allow all IPs), verify database name, check username/password.
+        </div>
+        
+        <h4>3. Build Failures</h4>
+        <div class="warning">
+            <strong>Problem:</strong> Deployment fails during build<br>
+            <strong>Solution:</strong> Check build logs, verify dependencies, check for syntax errors, ensure correct Node.js/Python versions.
+        </div>
+        
+        <h4>4. Environment Variables Not Working</h4>
+        <div class="warning">
+            <strong>Problem:</strong> App can't read environment variables<br>
+            <strong>Solution:</strong> Verify variables are set in Railway/Vercel dashboard, check variable names match exactly, restart services, for Next.js ensure <code>NEXT_PUBLIC_</code> prefix.
+        </div>
+        
+        <h2 id="maintenance">10. Maintenance & Updates</h2>
+        
+        <h3>Daily Workflow</h3>
+        <pre><code># 1. Make changes
+git checkout staging
+# ... make changes ...
+
+# 2. Commit and push
+git add .
+git commit -m "Description of changes"
+git push origin staging
+
+# 3. Test on staging
+# Visit staging URL and test
+
+# 4. Deploy to production
+git checkout main
+git merge staging
+git push origin main</code></pre>
+        
+        <h3>Cost Estimate</h3>
+        <table>
+            <tr>
+                <th>Service</th>
+                <th>Staging</th>
+                <th>Production</th>
+                <th>Total</th>
+            </tr>
+            <tr>
+                <td>Railway</td>
+                <td>Free (trial)</td>
+                <td>$5/month</td>
+                <td>$5/month</td>
+            </tr>
+            <tr>
+                <td>Vercel</td>
+                <td>Free</td>
+                <td>Free</td>
+                <td>Free</td>
+            </tr>
+            <tr>
+                <td>MongoDB Atlas</td>
+                <td>Free</td>
+                <td>Free</td>
+                <td>Free</td>
+            </tr>
+            <tr>
+                <td>Redis Cloud</td>
+                <td>Free</td>
+                <td>Free</td>
+                <td>Free</td>
+            </tr>
+            <tr>
+                <td><strong>Total</strong></td>
+                <td><strong>Free</strong></td>
+                <td><strong>$5/month</strong></td>
+                <td><strong>$5/month</strong></td>
+            </tr>
+        </table>
+        
+        <h3>Security Checklist</h3>
+        <ul class="checklist">
+            <li>Use strong, unique JWT secrets for production</li>
+            <li>Set <code>dev_mode=False</code> in production</li>
+            <li>Remove <code>*</code> from CORS origins in production</li>
+            <li>Use HTTPS everywhere (automatic on Railway/Vercel)</li>
+            <li>Keep API keys secure (never commit to Git)</li>
+            <li>Regularly update dependencies</li>
+            <li>Monitor for security vulnerabilities</li>
+        </ul>
+        
+        <h2>Quick Reference</h2>
+        
+        <h3>URLs Structure</h3>
+        <table>
+            <tr>
+                <th>Environment</th>
+                <th>Frontend</th>
+                <th>Backend</th>
+                <th>Strapi</th>
+            </tr>
+            <tr>
+                <td>Staging</td>
+                <td><code>bacolod-tourist-staging.vercel.app</code></td>
+                <td><code>staging-backend.railway.app</code></td>
+                <td><code>staging-strapi.railway.app</code></td>
+            </tr>
+            <tr>
+                <td>Production</td>
+                <td><code>bacolod-tourist-production.vercel.app</code></td>
+                <td><code>production-backend.railway.app</code></td>
+                <td><code>production-strapi.railway.app</code></td>
+            </tr>
+        </table>
+        
+        <h3>Important Commands</h3>
+        <pre><code># Create staging branch
+git checkout -b staging
+git push -u origin staging
+
+# Deploy to staging
+git checkout staging
+git add .
+git commit -m "Changes"
+git push origin staging
+
+# Deploy to production
+git checkout main
+git merge staging
+git push origin main</code></pre>
+        
+        <div class="success">
+            <strong>✅ You're all set!</strong> Follow this guide step by step to deploy your application. If you encounter any issues, refer to the Troubleshooting section.
+        </div>
+        
+        <hr>
+        <p style="text-align: center; color: #999; margin-top: 40px;">
+            <strong>Last Updated:</strong> 2024 | <strong>Version:</strong> 1.0
+        </p>
+    </div>
+</body>
+</html>
+

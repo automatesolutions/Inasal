@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "recommendations",
+  "info": {
+    "singularName": "recommendation",
+    "pluralName": "recommendations",
+    "displayName": "Recommendation"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::recommendation.recommendation"
+    },
+    "hotels": {
+      "type": "json"
+    },
+    "restaurant": {
+      "type": "json"
+    },
+    "entertainment": {
+      "type": "json"
+    },
+    "tourists_spots": {
+      "type": "json"
+    },
+    "secret_recommendation": {
+      "type": "json"
+    },
+    "expirest_at": {
+      "type": "datetime"
+    }
+  }
+}

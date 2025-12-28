@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "interaction_logs",
+  "info": {
+    "singularName": "interaction-log",
+    "pluralName": "interaction-logs",
+    "displayName": "Interaction Log"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::attraction.attraction"
+    },
+    "interaction_type": {
+      "type": "enumeration",
+      "enum": [
+        "     chat",
+        "     search",
+        "     view_destination",
+        "     like",
+        "     bookmark"
+      ]
+    },
+    "content": {
+      "type": "json"
+    },
+    "metadata": {
+      "type": "json"
+    },
+    "timestamp": {
+      "type": "datetime"
+    }
+  }
+}

@@ -8,6 +8,31 @@
 - [ ] Uphold responsible AI: transparent recommendations, guardrails for hallucinations, and clear opt-in for data use.
 - [ ] Enforce quality: unit tests for business logic, e2e tests for core journeys, automated checks in CI/CD.
 - [ ] Embrace infrastructure-as-code and reproducible environments (Docker, pnpm, FastAPI, LangChain stack).
+- [ ] **Hybrid Architecture**: Leverage best-of-breed solutions - FastAPI for business logic, Strapi for content, Make.com for AI automation.
+
+### Architecture Overview (Hybrid Approach)
+
+**FastAPI Backend** (Custom Business Logic)
+- Custom business logic and calculations
+- Real-time features (WebSockets, SSE)
+- Complex data processing
+- Rate limiting and security middleware
+- API orchestration layer
+
+**Strapi CMS** (Content Management)
+- User profiles and authentication
+- Attractions data (CRUD operations)
+- Content management (images, descriptions, metadata)
+- REST/GraphQL APIs for content
+- Admin panel for non-technical users
+
+**Make.com** (AI Workflows & Automation)
+- AI chat workflows (OpenAI/Anthropic integration)
+- Recommendation generation workflows
+- Personality inference automation
+- External API integrations (weather, events, news)
+- Scheduled tasks (data sync, cleanup)
+- Webhook-based event processing
 
 ### Phase Roadmap
 
@@ -68,6 +93,121 @@
 - [ ] Load/performance profiling, cost monitoring, and caching optimizations.
 - [ ] Draft launch playbook and rollback procedures.
 
+#### Phase 8 — OAuth Integration & Automatic Personality Inference (Estimated: Week 8-10)
+- [x] OAuth authentication setup (Facebook, Twitter, LinkedIn)
+- [x] Social profile data extraction and parsing
+- [x] LLM-based personality inference from social media profiles
+- [x] **Email-based personality inference** (Internet search from email patterns)
+- [x] Automatic recommendation generation on login
+- [x] Behavior tracking system for user interactions
+- [x] Adaptive personality updates based on browsing behavior
+- [x] Dashboard auto-loads recommendations (no click required)
+- [x] Analytics API for tracking interactions
+- [x] Frontend OAuth login buttons and callback handler
+- [x] **Free LLM Integration (Ollama)** - No more quota issues!
+- [x] **Chain Prompt Engineering** - Modular 3-step recommendation process
+- [x] **Web Scraping Module** - Ready for hotels, adventures, events
+
+#### Phase 9 — Hybrid Architecture Migration: Strapi + Make.com Integration (Estimated: Week 10-14)
+
+**Phase 9.1 — Strapi Setup & Content Migration (Week 10-11)**
+- [ ] Install and configure Strapi (local development + production setup)
+- [ ] Create Strapi content types:
+  - [ ] **User Profile** (user_id, email, name, personality JSON, preferences JSON, travel_history JSON)
+  - [ ] **Attraction** (name, type, description, location component, tags, images, personality_match JSON)
+  - [ ] **Interaction Log** (user_id relation, interaction_type, content JSON, metadata JSON, timestamp)
+  - [ ] **Recommendation** (user_id relation, hotels JSON, restaurants JSON, entertainment JSON, tourist_spots JSON, secret_recommendations JSON)
+- [ ] Configure Strapi authentication (JWT, API tokens, permissions)
+- [ ] Set up Strapi custom API endpoints for OTP flow (`/api/auth/send-otp`, `/api/auth/verify-otp`)
+- [ ] Migrate attractions data from MongoDB/JSON to Strapi
+- [ ] Create migration script for user profiles (MongoDB → Strapi)
+- [ ] Set up Strapi webhooks for content updates
+- [ ] Configure Strapi media library for images
+- [ ] Test Strapi API endpoints (REST and GraphQL)
+
+**Phase 9.2 — Make.com Workflow Setup (Week 11-12)**
+- [ ] Create Make.com account and workspace
+- [ ] Set up **Chat Workflow**:
+  - [ ] Webhook trigger (receives chat message from frontend)
+  - [ ] HTTP request to OpenAI/Anthropic API (chat completion)
+  - [ ] HTTP request to Strapi (create interaction log)
+  - [ ] HTTP request to Strapi (update user profile if needed)
+  - [ ] Return response to frontend webhook
+  - [ ] Error handling and retry logic
+- [ ] Set up **Recommendation Workflow**:
+  - [ ] Webhook trigger (user requests recommendations)
+  - [ ] HTTP request to Strapi (get user profile)
+  - [ ] HTTP request to OpenAI/Anthropic (generate recommendations based on profile)
+  - [ ] HTTP request to Strapi (get attractions data)
+  - [ ] Data processing module (match recommendations with attractions)
+  - [ ] HTTP request to Strapi (save recommendations)
+  - [ ] Return recommendations to frontend webhook
+- [ ] Set up **Persona Discovery Workflow**:
+  - [ ] Webhook trigger (new user signup or profile update)
+  - [ ] HTTP request to Strapi (get user data)
+  - [ ] HTTP request to OpenAI/Anthropic (analyze personality from social data)
+  - [ ] HTTP request to Strapi (update user profile with personality traits)
+  - [ ] Trigger recommendation generation workflow
+- [ ] Set up **Scheduled Tasks**:
+  - [ ] Daily attraction data sync (scrape and update Strapi)
+  - [ ] Weekly user profile cleanup (inactive users)
+  - [ ] Periodic recommendation cache refresh
+- [ ] Configure Make.com webhook authentication (API keys, tokens)
+- [ ] Test all Make.com scenarios end-to-end
+- [ ] Set up Make.com error notifications (email/Slack)
+
+**Phase 9.3 — FastAPI Refactoring (Week 12-13)**
+- [ ] Refactor FastAPI to act as orchestration layer:
+  - [ ] Keep custom business logic endpoints
+  - [ ] Keep real-time features (WebSocket chat, SSE streaming)
+  - [ ] Keep complex calculations (recommendation scoring algorithms)
+  - [ ] Keep rate limiting and security middleware
+- [ ] Update FastAPI to proxy Strapi APIs:
+  - [ ] `/api/profile/*` → Proxy to Strapi with authentication
+  - [ ] `/api/attractions/*` → Proxy to Strapi
+  - [ ] `/api/interactions/*` → Proxy to Strapi
+- [ ] Update FastAPI to call Make.com webhooks:
+  - [ ] `/api/chat` → Call Make.com chat webhook
+  - [ ] `/api/recommendations` → Call Make.com recommendation webhook
+  - [ ] `/api/persona-discovery` → Call Make.com persona webhook
+- [ ] Remove LangChain dependencies from FastAPI (migrate to Make.com)
+- [ ] Keep Redis for caching and session management
+- [ ] Update FastAPI tests to mock Strapi and Make.com calls
+- [ ] Document API architecture (FastAPI → Strapi → Make.com flow)
+
+**Phase 9.4 — Frontend Integration (Week 13-14)**
+- [ ] Update frontend API client (`src/lib/api.ts`):
+  - [ ] Add Strapi base URL configuration
+  - [ ] Add Make.com webhook URLs configuration
+  - [ ] Update authentication flow (Strapi JWT tokens)
+  - [ ] Update profile API calls (Strapi endpoints)
+  - [ ] Update attractions API calls (Strapi endpoints)
+  - [ ] Update chat API calls (Make.com webhooks via FastAPI proxy)
+  - [ ] Update recommendations API calls (Make.com webhooks via FastAPI proxy)
+- [ ] Update environment variables:
+  - [ ] `NEXT_PUBLIC_STRAPI_URL`
+  - [ ] `NEXT_PUBLIC_STRAPI_API_TOKEN`
+  - [ ] `NEXT_PUBLIC_MAKE_WEBHOOK_CHAT`
+  - [ ] `NEXT_PUBLIC_MAKE_WEBHOOK_RECOMMENDATIONS`
+  - [ ] `NEXT_PUBLIC_MAKE_WEBHOOK_PERSONA`
+- [ ] Update frontend tests to mock Strapi and Make.com responses
+- [ ] Test end-to-end user flows (login → profile → chat → recommendations)
+- [ ] Update frontend error handling for Strapi/Make.com errors
+
+**Phase 9.5 — Data Migration & Testing (Week 14)**
+- [ ] Create comprehensive migration script:
+  - [ ] Migrate user profiles (MongoDB → Strapi)
+  - [ ] Migrate interaction logs (MongoDB → Strapi)
+  - [ ] Migrate attractions (JSON → Strapi)
+  - [ ] Verify data integrity
+- [ ] Run migration in staging environment
+- [ ] Test all user journeys in staging
+- [ ] Performance testing (Strapi API response times, Make.com webhook latency)
+- [ ] Load testing (concurrent users, webhook throughput)
+- [ ] Rollback plan documentation
+- [ ] Production migration execution
+- [ ] Post-migration monitoring and validation
+
 ### Cross-Cutting Workstreams
 - [ ] UX Research & Content: continual refinement of Bacolod storytelling, imagery, and copy.
 - [ ] Prompt Engineering: maintain prompt library, track experiments, version control prompt changes.
@@ -91,6 +231,9 @@
 - [x] Map provider: Google Maps integration.
 - [x] Chatbot tone: friendly local guide persona.
 - [ ] Source of real-time events/weather feeds (official tourism board, third-party APIs).
+- [x] **Architecture**: Hybrid approach - FastAPI (business logic), Strapi (content), Make.com (AI workflows).
+- [x] **Content Management**: Strapi for attractions, user profiles, and content CRUD operations.
+- [x] **AI Automation**: Make.com for LLM workflows, external integrations, and scheduled tasks.
 
 ### Phase Completion Status
 - ✅ **Phase 0** - Project Foundation: COMPLETE
@@ -98,9 +241,11 @@
 - ✅ **Phase 2** - User Profile & Persistence Layer: COMPLETE
 - ✅ **Phase 3** - Recommendation Engine & Vector Store: COMPLETE
 - ✅ **Phase 4** - RAG Engine & Real-Time Enrichment: COMPLETE
-- ⏸️ **Phase 5** - LangGraph Flows & Itinerary Builder: PENDING
+- ⏸️ **Phase 5** - LangGraph Flows & Itinerary Builder: PENDING (will be replaced by Make.com workflows)
 - 🔄 **Phase 6** - Chat Assistant & Map Experience: PARTIALLY COMPLETE (chat agent done, frontend chat UI done, map pending)
 - ⏸️ **Phase 7** - Production Hardening & Observability: PENDING
+- ✅ **Phase 8** - OAuth Integration & Automatic Personality Inference: COMPLETE
+- 🆕 **Phase 9** - Hybrid Architecture Migration: Strapi + Make.com Integration: NOT STARTED
 
 ### Progress Summary
 **Completed:**
@@ -128,16 +273,35 @@
 - Recommendation enrichment with live context
 - LLM response evaluation system
 - Server can start without LangChain dependencies (graceful degradation)
+- **OAuth integration (Facebook, Twitter, LinkedIn)**
+- **Social profile data extraction and parsing**
+- **LLM-based personality inference from social media profiles**
+- **Automatic recommendation generation on login (cached in Redis)**
+- **Behavior tracking system (analytics API)**
+- **Adaptive personality updates based on user interactions**
+- **Dashboard auto-loads recommendations (no manual click needed)**
 
 **In Progress:**
-- LangGraph itinerary builder
+- LangGraph itinerary builder (will migrate to Make.com in Phase 9)
 
 **Pending:**
 - Google Maps integration
 - Streaming chat endpoint (SSE/WebSocket) - chat UI ready, needs backend streaming
 - Chat UI connected to backend API endpoint
-- LangGraph itinerary builder UI
+- LangGraph itinerary builder UI (will use Make.com workflows instead)
 - Production hardening (security, CI/CD, monitoring)
+- **Phase 9 Migration**: Strapi setup, Make.com workflows, FastAPI refactoring, frontend integration
 
-> ✅ Phase progress is tracked in real-time. **Testing milestone complete: 36 tests passing (12 backend + 24 frontend)**. Frontend-backend integration for login is complete. Next focus: Phase 5 - LangGraph Flows & Itinerary Builder or connect Chat UI to backend.
+**Architecture Migration (Phase 9):**
+- FastAPI will focus on: Custom business logic, complex calculations, real-time features (WebSockets/SSE)
+- Strapi will handle: Content management, user profiles, attractions data, CRUD operations
+- Make.com will handle: AI workflows (chat, recommendations, persona discovery), external integrations, scheduled tasks
+
+> ✅ Phase progress is tracked in real-time. **Testing milestone complete: 36 tests passing (12 backend + 24 frontend)**. Frontend-backend integration for login is complete. 
+> 
+> **Next Major Focus: Phase 9 - Hybrid Architecture Migration**
+> - Migrating to Strapi for content management (user profiles, attractions)
+> - Migrating AI workflows to Make.com (chat, recommendations, persona discovery)
+> - Refactoring FastAPI to focus on business logic and real-time features
+> - This hybrid approach provides better separation of concerns, easier content management, and scalable AI automation
 

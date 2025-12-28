@@ -1,0 +1,58 @@
+{
+  "kind": "collectionType",
+  "collectionName": "attractions",
+  "info": {
+    "singularName": "attraction",
+    "pluralName": "attractions",
+    "displayName": "Attraction"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "     historical",
+        "     cultural",
+        "     food",
+        "     nature",
+        "     entertainment"
+      ]
+    },
+    "description": {
+      "type": "text"
+    },
+    "location": {
+      "type": "component",
+      "component": "shared.location",
+      "repeatable": true
+    },
+    "tags": {
+      "type": "json"
+    },
+    "best_time_to_visit": {
+      "type": "string"
+    },
+    "entry_fee": {
+      "type": "string"
+    },
+    "personlaity_match": {
+      "type": "json"
+    },
+    "images": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  }
+}

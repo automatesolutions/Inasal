@@ -3,7 +3,6 @@
 import json
 from typing import Optional
 
-from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
 from langchain.prompts import (
@@ -14,6 +13,7 @@ from langchain.prompts import (
 )
 
 from app.config import settings
+from app.llm_factory import get_chat_llm
 from app.redis_client import redis_client
 from app.user_profile import UserProfileService
 
@@ -27,13 +27,10 @@ class ChatAgent:
         self.memory_store = {}  # In-memory fallback if Redis fails
         self.chain = None
 
-        if settings.openai_api_key:
-            llm = ChatOpenAI(
-                model="gpt-3.5-turbo",
-                temperature=0.7,
-                openai_api_key=settings.openai_api_key,
-            )
+        # Use LLM factory (supports Ollama, OpenAI, Groq)
+        llm = get_chat_llm(temperature=0.7)
 
+        if llm:
             prompt = ChatPromptTemplate.from_messages(
                 [
                     SystemMessagePromptTemplate.from_template(
@@ -51,6 +48,9 @@ class ChatAgent:
 
             self.llm = llm
             self.prompt = prompt
+        else:
+            self.llm = None
+            self.prompt = None
 
     async def _get_memory(self, user_id: str) -> ConversationBufferMemory:
         """Get or create conversation memory for user"""

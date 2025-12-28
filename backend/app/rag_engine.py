@@ -6,10 +6,10 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import httpx
 
-from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 
 from app.config import settings
+from app.llm_factory import get_chat_llm
 from app.redis_client import redis_client
 
 # Configure structured logging
@@ -27,17 +27,14 @@ class RAGEngine:
     """Retrieval-Augmented Generation engine for real-time data enrichment"""
 
     def __init__(self):
-        self.llm = None
+        # Use LLM factory (supports Ollama, OpenAI, Groq)
+        self.llm = get_chat_llm(
+            temperature=0.5,
+            model=settings.openai_model if settings.llm_provider == "openai" else None
+        )
         self.weather_cache_key = "weather:bacolod"
         self.events_cache_key = "events:bacolod"
         self.news_cache_key = "news:bacolod"
-
-        if settings.openai_api_key:
-            self.llm = ChatOpenAI(
-                model=settings.openai_model,
-                temperature=0.5,
-                openai_api_key=settings.openai_api_key,
-            )
 
     async def _get_cached_data(self, cache_key: str) -> Optional[Dict]:
         """Get cached data from Redis"""
@@ -286,10 +283,18 @@ Be warm, welcoming, and practical. If you have real-time data (weather, events),
     async def enrich_recommendations_with_context(
         self, recommendations: List[Dict], user_profile: Optional[Dict] = None
     ) -> List[Dict]:
-        """Enrich recommendations with real-time context (weather, events)"""
+        """Enrich recommendations with real-time context (weather, events, scraped data)"""
         # Get real-time data
         weather = await self.get_weather_info()
         events = await self.get_local_events()
+        
+        # Get scraped travel data (hotels, adventures)
+        scraped_data = None
+        try:
+            from app.scrapers.travel_scraper import travel_scraper
+            scraped_data = await travel_scraper.scrape_all()
+        except Exception as e:
+            logger.debug(f"Could not load scraped data: {e}")
 
         # Enrich each recommendation
         enriched = []
@@ -311,6 +316,22 @@ Be warm, welcoming, and practical. If you have real-time data (weather, events),
             ]
             if matching_events:
                 enriched_rec["upcoming_events"] = matching_events
+
+            # Add scraped data (hotels, adventures) if available
+            if scraped_data:
+                # Add nearby hotels if available
+                if scraped_data.get("hotels"):
+                    enriched_rec["nearby_hotels"] = scraped_data["hotels"][:3]  # Top 3
+                
+                # Add related adventures if available
+                if scraped_data.get("adventures"):
+                    # Match adventures by type/location
+                    related_adventures = [
+                        adv for adv in scraped_data["adventures"]
+                        if any(tag in rec.get("tags", []) for tag in adv.get("tags", []))
+                    ]
+                    if related_adventures:
+                        enriched_rec["related_adventures"] = related_adventures[:2]  # Top 2
 
             enriched.append(enriched_rec)
 

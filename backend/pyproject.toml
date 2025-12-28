@@ -1,14 +1,13 @@
-# Minimal dependencies for testing core functionality without LangChain
-# Use this if LangChain installation fails
-
 [tool.poetry]
-name = "bacolod-tourist-backend-minimal"
+name = "bacolod-tourist-backend"
 version = "0.1.0"
-description = "Backend API - Minimal dependencies for testing"
+description = "Backend API for Bacolod Tourist AI Web Application"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
 packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11,<3.14"
 fastapi = "^0.109.0"
 uvicorn = {extras = ["standard"], version = "^0.27.0"}
 pydantic = {extras = ["email"], version = "^2.5.0"}
@@ -18,15 +17,49 @@ passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-multipart = "^0.0.6"
 motor = "^3.3.2"
 redis = "^5.0.1"
-httpx = "^0.26.0"
+langchain = "^0.3.21"
+langchain-openai = "^0.2.9"
+langchain-community = "^0.3.15"
+langchain-anthropic = "^0.3.0"
+# langchain-ollama removed - using OpenAI-compatible API instead
+langgraph = "^0.2.68"
+faiss-cpu = "^1.8.0"
+openai = "^1.58.0"
+httpx = "^0.27.0"
 python-dotenv = "^1.0.0"
+authlib = "^1.3.0"
+httpx-oauth = "^0.14.0"
+cryptography = "^42.0.0"
+beautifulsoup4 = "^4.12.0"
+playwright = "^1.40.0"
+anthropic = "^0.72.0"
+mcp = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-asyncio = "^0.23.3"
 pytest-cov = "^4.1.0"
+black = "^24.1.0"
+ruff = "^0.2.0"
+mypy = "^1.8.0"
+httpx = "^0.27.0"
+pytest-mock = "^3.12.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
 

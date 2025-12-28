@@ -6,9 +6,10 @@ describe('HomePage', () => {
   it('renders the welcome message', () => {
     render(<Home />);
     
-    expect(screen.getByText('Welcome to Bacolod')).toBeVisible();
+    expect(screen.getByText('INASAL')).toBeVisible();
+    expect(screen.getByText('Discover the City of Smiles')).toBeVisible();
     expect(
-      screen.getByText(/Discover the City of Smiles with AI-powered recommendations/i)
+      screen.getByText(/Experience Bacolod with AI-powered personalized recommendations/i)
     ).toBeVisible();
   });
 
