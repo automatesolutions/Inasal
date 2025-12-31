@@ -1,0 +1,88 @@
+{
+  "kind": "collectionType",
+  "collectionName": "secret_recommendations",
+  "info": {
+    "singularName": "secret-recommendation",
+    "pluralName": "secret-recommendations",
+    "displayName": "Secret Recommendation"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::user-profile.user-profile"
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "url": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    },
+    "match_score": {
+      "type": "decimal"
+    },
+    "category": {
+      "type": "string"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "hidden_trait_match": {
+      "type": "string"
+    },
+    "why_secret": {
+      "type": "text"
+    },
+    "expires_at": {
+      "type": "datetime"
+    },
+    "location": {
+      "type": "component",
+      "component": "shared.location",
+      "repeatable": false
+    },
+    "tags": {
+      "type": "json"
+    },
+    "price_range": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "decimal"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "address": {
+      "type": "text"
+    },
+    "best_time_to_visit": {
+      "type": "string"
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "priority": {
+      "type": "integer",
+      "default": 0
+    },
+    "additional_info": {
+      "type": "json"
+    }
+  }
+}
+

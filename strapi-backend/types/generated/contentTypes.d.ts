@@ -581,7 +581,6 @@ export interface ApiRecommendationRecommendation
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     restaurant: Schema.Attribute.JSON;
-    secret_recommendation: Schema.Attribute.JSON;
     tourists_spots: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -590,6 +589,57 @@ export interface ApiRecommendationRecommendation
       'oneToOne',
       'api::recommendation.recommendation'
     >;
+  };
+}
+
+export interface ApiSecretRecommendationSecretRecommendation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'secret_recommendations';
+  info: {
+    displayName: 'Secret Recommendation';
+    pluralName: 'secret-recommendations';
+    singularName: 'secret-recommendation';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    additional_info: Schema.Attribute.JSON;
+    address: Schema.Attribute.Text;
+    best_time_to_visit: Schema.Attribute.String;
+    category: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text & Schema.Attribute.Required;
+    expires_at: Schema.Attribute.DateTime;
+    featured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    hidden_trait_match: Schema.Attribute.String;
+    image: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::secret-recommendation.secret-recommendation'
+    > &
+      Schema.Attribute.Private;
+    location: Schema.Attribute.Component<'shared.location', false>;
+    match_score: Schema.Attribute.Decimal;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    phone: Schema.Attribute.String;
+    price_range: Schema.Attribute.String;
+    priority: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    publishedAt: Schema.Attribute.DateTime;
+    rating: Schema.Attribute.Decimal;
+    tags: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    url: Schema.Attribute.String;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::user-profile.user-profile'
+    >;
+    why_secret: Schema.Attribute.Text;
   };
 }
 
@@ -1140,6 +1190,7 @@ declare module '@strapi/strapi' {
       'api::attraction.attraction': ApiAttractionAttraction;
       'api::interaction-log.interaction-log': ApiInteractionLogInteractionLog;
       'api::recommendation.recommendation': ApiRecommendationRecommendation;
+      'api::secret-recommendation.secret-recommendation': ApiSecretRecommendationSecretRecommendation;
       'api::user-profile.user-profile': ApiUserProfileUserProfile;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

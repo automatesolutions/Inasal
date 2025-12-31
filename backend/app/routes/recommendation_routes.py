@@ -1,6 +1,7 @@
 """Recommendation API routes"""
 
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Optional
@@ -9,6 +10,8 @@ from app.auth import get_current_user
 from app.redis_client import redis_client
 from app.strapi_client import strapi_client
 from app.make_client import make_client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
@@ -47,6 +50,54 @@ def _parse_json_field(value):
     return []
 
 
+def _normalize_recommendation_item(item: dict) -> dict:
+    """Normalize recommendation item to match frontend expectations
+    
+    Converts:
+    - 'rating' (string/number) → 'match_score' (float 0-1)
+    - Unescapes description newlines if needed (\\n → \n)
+    - Ensures all required fields are present
+    """
+    normalized = item.copy()
+    
+    # Convert rating to match_score if rating exists but match_score doesn't
+    if "rating" in normalized and "match_score" not in normalized:
+        rating = normalized.get("rating", "0")
+        try:
+            # Handle both string and numeric ratings
+            if isinstance(rating, str):
+                rating_float = float(rating)
+            else:
+                rating_float = float(rating)
+            
+            # If rating is already 0-1 scale, use as-is; otherwise normalize from 0-10
+            if rating_float <= 1.0:
+                match_score = rating_float
+            else:
+                match_score = rating_float / 10.0
+            
+            # Ensure match_score is between 0 and 1
+            match_score = max(0.0, min(1.0, match_score))
+            normalized["match_score"] = match_score
+        except (ValueError, TypeError):
+            normalized["match_score"] = 0.5  # Default if rating is invalid
+    
+    # Ensure match_score exists (default to 0.5 if missing)
+    if "match_score" not in normalized:
+        normalized["match_score"] = 0.5
+    
+    # Note: Description newlines are handled automatically by JSON parsing
+    # If Strapi returns JSON string with "\\n", json.loads() converts it to "\n" (newline)
+    # If Strapi returns already-parsed data, newlines should already be correct
+    
+    return normalized
+
+
+def _normalize_recommendation_list(items: list) -> list:
+    """Normalize a list of recommendation items"""
+    return [_normalize_recommendation_item(item) for item in items]
+
+
 @router.get("", response_model=RecommendationsResponse)
 async def get_recommendations(
     current_user: dict = Depends(get_current_user),
@@ -81,12 +132,19 @@ async def get_recommendations(
                 
                 # Parse JSON fields (Strapi might return JSON as string)
                 # Handle both "restaurants" (plural) and "restaurant" (singular) field names
-                restaurants = _parse_json_field(attrs.get("restaurants") or attrs.get("restaurant"))
-                hotels = _parse_json_field(attrs.get("hotels"))
-                entertainment = _parse_json_field(attrs.get("entertainment"))
+                restaurants_raw = _parse_json_field(attrs.get("restaurants") or attrs.get("restaurant"))
+                hotels_raw = _parse_json_field(attrs.get("hotels"))
+                entertainment_raw = _parse_json_field(attrs.get("entertainment"))
                 # Handle both "tourist_spots" and "tourists_spots" field names
-                tourist_spots = _parse_json_field(attrs.get("tourist_spots") or attrs.get("tourists_spots"))
-                secret_recommendations = _parse_json_field(attrs.get("secret_recommendations") or attrs.get("secret_recommendation"))
+                tourist_spots_raw = _parse_json_field(attrs.get("tourist_spots") or attrs.get("tourists_spots"))
+                secret_recommendations_raw = _parse_json_field(attrs.get("secret_recommendations") or attrs.get("secret_recommendation"))
+                
+                # Normalize items: convert 'rating' to 'match_score' if needed
+                restaurants = _normalize_recommendation_list(restaurants_raw)
+                hotels = _normalize_recommendation_list(hotels_raw)
+                entertainment = _normalize_recommendation_list(entertainment_raw)
+                tourist_spots = _normalize_recommendation_list(tourist_spots_raw)
+                secret_recommendations = _normalize_recommendation_list(secret_recommendations_raw)
                 
                 print(f"🔍 DEBUG: Restaurants count: {len(restaurants)}")
                 print(f"🔍 DEBUG: Hotels count: {len(hotels)}")
@@ -95,6 +153,9 @@ async def get_recommendations(
                 
                 if restaurants:
                     print(f"🔍 DEBUG: First restaurant: {restaurants[0].get('name', 'N/A')}")
+                if hotels:
+                    print(f"🔍 DEBUG: First hotel: {hotels[0].get('name', 'N/A')}")
+                    print(f"🔍 DEBUG: First hotel match_score: {hotels[0].get('match_score', 'N/A')}")
                 
                 print(f"{'='*60}\n")
                 
@@ -352,3 +413,123 @@ async def get_secret_recommendations(
     return {
         "secret_recommendations": [],
     }
+
+
+class HotelInput(BaseModel):
+    """Input model for hotel from Make.com"""
+    name: str
+    url: str
+    description: str
+    rating: str  # Rating as string (e.g., "8", "9")
+    image: Optional[str] = None
+
+
+class HotelRecommendationRequest(BaseModel):
+    """Request model for hotel recommendations from Make.com"""
+    data: dict
+    user: Optional[int] = None  # Will be extracted from data.user
+    hotels: Optional[List[HotelInput]] = None  # Will be extracted from data.hotels
+
+
+@router.post("/hotels")
+async def receive_hotel_recommendations(
+    request: dict,  # Accept raw dict to handle flexible structure
+):
+    """
+    Receive hotel recommendations from Make.com webhook.
+    
+    Expected format:
+    {
+        "data": {
+            "user": 11,
+            "hotels": [
+                {
+                    "name": "...",
+                    "url": "...",
+                    "description": "...",
+                    "rating": "8",
+                    "image": "..."
+                }
+            ]
+        }
+    }
+    """
+    try:
+        # Extract user and hotels from the request
+        data = request.get("data", {})
+        user = data.get("user")
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing user ID in request data"
+            )
+        user_id = str(user)
+        hotels_raw = data.get("hotels", [])
+        
+        if not hotels_raw:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing hotels in request data"
+            )
+        
+        # Transform hotels: convert rating to match_score
+        hotels_transformed = []
+        for hotel in hotels_raw:
+            # Convert rating to match_score (normalize to 0-1 scale)
+            rating = hotel.get("rating", "0")
+            try:
+                # Handle both string and numeric ratings
+                if isinstance(rating, str):
+                    rating_float = float(rating)
+                else:
+                    rating_float = float(rating)
+                
+                # If rating is already 0-1 scale, use as-is; otherwise normalize from 0-10
+                if rating_float <= 1.0:
+                    match_score = rating_float
+                else:
+                    match_score = rating_float / 10.0
+                
+                # Ensure match_score is between 0 and 1
+                match_score = max(0.0, min(1.0, match_score))
+            except (ValueError, TypeError):
+                match_score = 0.5  # Default if rating is invalid
+            
+            hotels_transformed.append({
+                "name": hotel.get("name", ""),
+                "url": hotel.get("url", ""),
+                "description": hotel.get("description", ""),
+                "match_score": match_score,
+                "image": hotel.get("image"),
+                "rating": str(rating),  # Keep original rating for reference
+            })
+        
+        # Update recommendations in Strapi
+        result = await strapi_client.update_recommendations(
+            user_id=user_id,
+            hotels=hotels_transformed
+        )
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save recommendations to Strapi"
+            )
+        
+        return {
+            "success": True,
+            "message": f"Successfully saved {len(hotels_transformed)} hotel recommendations",
+            "user_id": user_id,
+            "hotels_count": len(hotels_transformed)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.error(f"Error receiving hotel recommendations: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing hotel recommendations: {str(e)}"
+        )

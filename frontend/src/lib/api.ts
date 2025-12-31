@@ -6,7 +6,7 @@
  * - All API calls go through FastAPI, which proxies to Strapi/Make.com as needed
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
 
 export interface ApiError {
@@ -33,6 +33,11 @@ async function apiRequest<T>(
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
 
+  console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
+  if (options.body) {
+    console.log(`📦 Request body:`, options.body);
+  }
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -41,16 +46,28 @@ async function apiRequest<T>(
     },
   });
 
+  console.log(`📥 API Response: ${response.status} ${response.statusText}`);
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+    let errorData: any = {};
+    try {
+      const text = await response.text();
+      console.error(`❌ Error response body:`, text);
+      errorData = JSON.parse(text);
+    } catch (e) {
+      console.error(`❌ Could not parse error response:`, e);
+    }
     const error: ApiError = {
       detail: errorData.detail || `HTTP error! status: ${response.status}`,
       status: response.status,
     };
+    console.error(`❌ API Error:`, error);
     throw error;
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log(`✅ API Success:`, data);
+  return data;
 }
 
 /**
@@ -140,9 +157,27 @@ export interface RecommendationItem {
   image?: string;
 }
 
+export interface LocationComponent {
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface SecretRecommendation extends RecommendationItem {
+  id?: number;
   hidden_trait_match?: string;
   why_secret?: string;
+  expires_at?: string;
+  location?: LocationComponent;
+  tags?: string[];
+  price_range?: string;
+  rating?: number;
+  phone?: string;
+  address?: string;
+  best_time_to_visit?: string;
+  featured?: boolean;
+  priority?: number;
+  additional_info?: Record<string, any>;
 }
 
 export interface RecommendationsResponse {
@@ -160,14 +195,29 @@ export const recommendationApi = {
   async getRecommendations(): Promise<RecommendationsResponse> {
     return apiRequest<RecommendationsResponse>('/api/recommendations');
   },
+};
+
+/**
+ * Secret Recommendations API functions (separate collection)
+ */
+export interface SecretRecommendationResponse {
+  data: SecretRecommendation[];
+  count: number;
+}
+
+export const secretRecommendationsApi = {
+  /**
+   * Get all secret recommendations for the current user
+   */
+  async getSecretRecommendations(limit: number = 50): Promise<SecretRecommendationResponse> {
+    return apiRequest<SecretRecommendationResponse>(`/api/secret-recommendations?limit=${limit}`);
+  },
 
   /**
-   * Get secret recommendations (hidden traits)
+   * Get a single secret recommendation by ID
    */
-  async getSecretRecommendations(): Promise<{
-    secret_recommendations: SecretRecommendation[];
-  }> {
-    return apiRequest(`/api/recommendations/secret`);
+  async getSecretRecommendation(id: number): Promise<{ data: SecretRecommendation }> {
+    return apiRequest<{ data: SecretRecommendation }>(`/api/secret-recommendations/${id}`);
   },
 };
 
@@ -179,7 +229,7 @@ export const oauthApi = {
    * Initiate OAuth login
    */
   initiateLogin(provider: 'facebook' | 'twitter' | 'linkedin'): void {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     window.location.href = `${apiUrl}/api/auth/oauth/${provider}/authorize`;
   },
 
@@ -191,7 +241,7 @@ export const oauthApi = {
     provider: string;
   }> {
     // Status endpoint is public, no auth token needed
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const response = await fetch(`${apiUrl}/api/auth/oauth/${provider}/status`);
     if (!response.ok) {
       throw new Error(`Failed to check ${provider} status`);

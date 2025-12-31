@@ -324,6 +324,202 @@ class StrapiClient:
             logger.error(f"Error creating recommendations for {user_id}: {e}")
             return None
 
+    async def update_recommendations(
+        self,
+        user_id: str,
+        hotels: Optional[List[Dict]] = None,
+        restaurants: Optional[List[Dict]] = None,
+        entertainment: Optional[List[Dict]] = None,
+        tourist_spots: Optional[List[Dict]] = None,
+        secret_recommendations: Optional[List[Dict]] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Update existing recommendations in Strapi (partial update)"""
+        profile_id = await self._get_user_profile_id(user_id)
+        if not profile_id:
+            return None
+
+        try:
+            # First, get existing recommendations
+            response = await self.client.get(
+                "/api/recommendations",
+                params={
+                    "filters[user][id][$eq]": profile_id,
+                    "sort": "createdAt:desc",
+                    "pagination[limit]": 1,
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if not data.get("data"):
+                # No existing recommendations, create new one
+                return await self.create_recommendations(
+                    user_id=user_id,
+                    hotels=hotels or [],
+                    restaurants=restaurants or [],
+                    entertainment=entertainment or [],
+                    tourist_spots=tourist_spots or [],
+                    secret_recommendations=secret_recommendations
+                )
+            
+            # Get the most recent recommendation
+            rec_id = data["data"][0]["id"]
+            
+            # Build update payload with only provided fields
+            payload = {"data": {}}
+            if hotels is not None:
+                payload["data"]["hotels"] = hotels
+            if restaurants is not None:
+                payload["data"]["restaurants"] = restaurants
+            if entertainment is not None:
+                payload["data"]["entertainment"] = entertainment
+            if tourist_spots is not None:
+                payload["data"]["tourist_spots"] = tourist_spots
+            if secret_recommendations is not None:
+                payload["data"]["secret_recommendations"] = secret_recommendations
+
+            response = await self.client.put(
+                f"/api/recommendations/{rec_id}",
+                json=payload
+            )
+            response.raise_for_status()
+            return response.json()["data"]
+        except Exception as e:
+            logger.error(f"Error updating recommendations for {user_id}: {e}")
+            return None
+
+    async def get_secret_recommendations(
+        self,
+        user_id: str,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Get secret recommendations for a user from the separate Secret Recommendations collection
+        
+        TEMPORARY: Currently returns ALL published secret recommendations for testing
+        TODO: Re-enable user filtering after testing
+        """
+        # TEMPORARY: Get ALL published secret recommendations (no user filtering)
+        # profile_id = await self._get_user_profile_id(user_id)
+        # if not profile_id:
+        #     logger.warning(f"User profile not found for {user_id}")
+        #     return []
+
+        try:
+            params = {
+                # TEMPORARY: Removed user filter for testing
+                # "filters[user][id][$eq]": profile_id,
+                "populate": "*",  # Populate all fields including image
+                "sort": "createdAt:desc",
+                "pagination[limit]": limit,
+            }
+
+            logger.info(f"Fetching secret recommendations with params: {params}")
+            response = await self.client.get(
+                "/api/secret-recommendations",
+                params=params
+            )
+            response.raise_for_status()
+            data = response.json()
+            recommendations = data.get("data", [])
+            logger.info(f"Successfully fetched {len(recommendations)} secret recommendations")
+            return recommendations
+        except Exception as e:
+            logger.error(f"Error getting secret recommendations for {user_id}: {e}")
+            # Log the full error details for debugging
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_body = e.response.json()
+                    logger.error(f"Strapi error response: {error_body}")
+                except:
+                    logger.error(f"Strapi error response text: {e.response.text}")
+            return []
+
+    async def create_secret_recommendation(
+        self,
+        user_id: str,
+        name: str,
+        description: str,
+        url: Optional[str] = None,
+        match_score: Optional[float] = None,
+        category: Optional[str] = None,
+        image: Optional[int] = None,
+        hidden_trait_match: Optional[str] = None,
+        why_secret: Optional[str] = None,
+        expires_at: Optional[str] = None,
+        location: Optional[Dict[str, Any]] = None,
+        tags: Optional[List[str]] = None,
+        price_range: Optional[str] = None,
+        rating: Optional[float] = None,
+        phone: Optional[str] = None,
+        address: Optional[str] = None,
+        best_time_to_visit: Optional[str] = None,
+        featured: Optional[bool] = None,
+        priority: Optional[int] = None,
+        additional_info: Optional[Dict[str, Any]] = None,
+        published: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """Create a new secret recommendation"""
+        profile_id = await self._get_user_profile_id(user_id)
+        if not profile_id:
+            return None
+
+        try:
+            payload = {
+                "data": {
+                    "user": profile_id,
+                    "name": name,
+                    "description": description,
+                }
+            }
+
+            if url:
+                payload["data"]["url"] = url
+            if match_score is not None:
+                payload["data"]["match_score"] = match_score
+            if category:
+                payload["data"]["category"] = category
+            if image is not None:
+                payload["data"]["image"] = image  # Media ID
+            if hidden_trait_match:
+                payload["data"]["hidden_trait_match"] = hidden_trait_match
+            if why_secret:
+                payload["data"]["why_secret"] = why_secret
+            if expires_at:
+                payload["data"]["expires_at"] = expires_at
+            if location:
+                payload["data"]["location"] = location
+            if tags is not None:
+                payload["data"]["tags"] = tags
+            if price_range:
+                payload["data"]["price_range"] = price_range
+            if rating is not None:
+                payload["data"]["rating"] = rating
+            if phone:
+                payload["data"]["phone"] = phone
+            if address:
+                payload["data"]["address"] = address
+            if best_time_to_visit:
+                payload["data"]["best_time_to_visit"] = best_time_to_visit
+            if featured is not None:
+                payload["data"]["featured"] = featured
+            if priority is not None:
+                payload["data"]["priority"] = priority
+            if additional_info:
+                payload["data"]["additional_info"] = additional_info
+            if published:
+                from datetime import datetime
+                payload["data"]["publishedAt"] = datetime.utcnow().isoformat() + "Z"
+
+            response = await self.client.post(
+                "/api/secret-recommendations",
+                json=payload
+            )
+            response.raise_for_status()
+            return response.json().get("data")
+        except Exception as e:
+            logger.error(f"Error creating secret recommendation: {e}")
+            return None
+
     async def close(self):
         """Close the HTTP client"""
         await self.client.aclose()

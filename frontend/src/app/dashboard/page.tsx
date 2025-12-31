@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { recommendationApi, type RecommendationItem, type SecretRecommendation } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { recommendationApi, type RecommendationItem } from "@/lib/api";
 
-type SectionType = "hotels" | "restaurants" | "entertainment" | "tourist_spots" | "secret" | null;
+type SectionType = "hotels" | "restaurants" | "entertainment" | "tourist_spots" | null;
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState<SectionType>(null);
   const [hotels, setHotels] = useState<RecommendationItem[]>([]);
   const [restaurants, setRestaurants] = useState<RecommendationItem[]>([]);
   const [entertainment, setEntertainment] = useState<RecommendationItem[]>([]);
   const [touristSpots, setTouristSpots] = useState<RecommendationItem[]>([]);
-  const [secretRecommendations, setSecretRecommendations] = useState<SecretRecommendation[]>([]);
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [error, setError] = useState<string>("");
-  const [secretUnlocked, setSecretUnlocked] = useState(false);
 
   // Auto-load recommendations on mount
   useEffect(() => {
@@ -35,7 +35,6 @@ export default function DashboardPage() {
       setRestaurants(response.restaurants || []);
       setEntertainment(response.entertainment || []);
       setTouristSpots(response.tourist_spots || []);
-      setSecretRecommendations(response.secret_recommendations || []);
     } catch (err: any) {
       const errorMessage = err.detail || "Failed to load recommendations";
       setError(errorMessage);
@@ -50,10 +49,6 @@ export default function DashboardPage() {
   };
 
   const handleRecommendationClick = (item: RecommendationItem) => {
-    // Track clicks to unlock secret page
-    if (!secretUnlocked && (item.match_score > 0.8 || Math.random() > 0.7)) {
-      setSecretUnlocked(true);
-    }
     // Open URL in new tab
     if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
@@ -119,58 +114,6 @@ export default function DashboardPage() {
     );
   };
 
-  const SecretCard = ({ item }: { item: SecretRecommendation }) => {
-    return (
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-purple-200">
-        <div className="p-5">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">🔮</span>
-                <h3 className="text-lg font-bold text-purple-900">
-                  {item.name}
-                </h3>
-              </div>
-              {item.hidden_trait_match && (
-                <span className="inline-block px-3 py-1 text-xs font-semibold text-purple-700 bg-purple-100 rounded-full">
-                  {item.hidden_trait_match}
-                </span>
-              )}
-            </div>
-            <div className="ml-3 text-right">
-              <div className="text-xs text-purple-500 mb-1">Match</div>
-              <div className="text-sm font-bold text-purple-600">
-                {Math.round(item.match_score * 100)}%
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-sm text-gray-700 mb-3">
-            {item.description}
-          </p>
-          
-          {item.why_secret && (
-            <div className="mb-3 p-2 bg-purple-100 rounded-md">
-              <p className="text-xs text-purple-800 italic">
-                💡 {item.why_secret}
-              </p>
-            </div>
-          )}
-          
-          {item.url && (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center text-sm font-semibold text-purple-600 hover:text-purple-700 transition-colors"
-            >
-              Discover Secret →
-            </a>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -326,34 +269,24 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Secret Page */}
-          <div
-            className={`bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer border-2 ${
-              activeSection === "secret"
-                ? "border-purple-500 shadow-2xl scale-[1.02]"
-                : secretUnlocked
-                ? "border-purple-300 hover:border-purple-400"
-                : "border-transparent opacity-50"
-            }`}
-            onClick={() => secretUnlocked && handleSectionClick("secret")}
+          {/* Secret Recommendations Link */}
+          <a
+            href="/secret-recommendations"
+            className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer border-2 border-purple-300 hover:border-purple-400"
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-2xl">
                   🔮
                 </div>
-                {activeSection === "secret" ? (
-                  <span className="text-purple-600 font-semibold">▼</span>
-                ) : (
-                  <span className="text-gray-400">▶</span>
-                )}
+                <span className="text-purple-600 font-semibold">→</span>
               </div>
-              <h2 className="text-2xl font-bold text-purple-900 mb-3">Secret</h2>
+              <h2 className="text-2xl font-bold text-purple-900 mb-3">Secret Recommendations</h2>
               <p className="text-gray-600 mb-2">
-                {secretUnlocked ? `${secretRecommendations.length} hidden gems` : "Click recommendations to unlock"}
+                Discover hidden gems based on your personality
               </p>
             </div>
-          </div>
+          </a>
         </div>
 
         {/* Expanded Content Sections */}
@@ -457,33 +390,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {activeSection === "secret" && secretUnlocked && (
-          <div className="mt-8 animate-fadeIn">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-3xl font-bold text-purple-900">🔮 Secret Recommendations</h2>
-              <button
-                onClick={() => setActiveSection(null)}
-                className="text-gray-500 hover:text-purple-600 transition-colors"
-              >
-                ✕ Close
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Based on your hidden personality traits, here are some unusual recommendations you wouldn't ask for but would love:
-            </p>
-            {secretRecommendations.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {secretRecommendations.map((item, idx) => (
-                  <SecretCard key={idx} item={item} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-white rounded-xl">
-                <p className="text-gray-500">No secret recommendations available yet.</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

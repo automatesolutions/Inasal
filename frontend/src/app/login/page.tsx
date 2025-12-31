@@ -83,13 +83,22 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await authApi.sendOTP(email, firstName, lastName);
+      console.log("📤 Sending OTP request:", { email, firstName, lastName });
+      const result = await authApi.sendOTP(email, firstName, lastName);
+      console.log("✅ OTP sent successfully:", result);
       setOtpSent(true);
     } catch (err: any) {
+      console.error("❌ Error sending OTP:", err);
+      console.error("Error details:", {
+        detail: err?.detail,
+        status: err?.status,
+        message: err?.message,
+        fullError: err
+      });
       const fallbackMessage =
         typeof err?.detail === "string"
           ? err.detail
-          : "Failed to send verification code. Please try again.";
+          : err?.message || `Failed to send verification code. Status: ${err?.status || 'unknown'}. Please try again.`;
       setError(fallbackMessage);
     } finally {
       setLoading(false);
@@ -195,7 +204,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
                   placeholder="your.email@example.com"
                 />
               </div>
@@ -214,7 +223,7 @@ export default function LoginPage() {
                     onChange={(e) => setFirstName(e.target.value)}
                     required
                     disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
                     placeholder="Juan"
                     autoComplete="given-name"
                   />
@@ -233,7 +242,7 @@ export default function LoginPage() {
                     onChange={(e) => setLastName(e.target.value)}
                     required
                     disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
                     placeholder="Dela Cruz"
                     autoComplete="family-name"
                   />
@@ -265,7 +274,7 @@ export default function LoginPage() {
                 required
                 maxLength={6}
                 disabled={loading}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-2xl tracking-widest disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-2xl tracking-widest disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
                 placeholder="000000"
               />
               <p className="text-sm text-gray-500 mt-2">

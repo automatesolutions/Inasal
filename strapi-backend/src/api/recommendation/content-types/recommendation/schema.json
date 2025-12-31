@@ -28,9 +28,6 @@
     "tourists_spots": {
       "type": "json"
     },
-    "secret_recommendation": {
-      "type": "json"
-    },
     "expirest_at": {
       "type": "datetime"
     }

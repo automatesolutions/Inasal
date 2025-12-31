@@ -1,7 +1,0 @@
-COPY AND PASTE THIS COMMAND INTO POWERSHELL:
-
-cd backend
-& "$env:APPDATA\Python\Python313\Scripts\poetry.exe" install
-
-NOTE: The & symbol at the beginning is REQUIRED!
-

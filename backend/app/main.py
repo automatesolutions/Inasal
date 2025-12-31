@@ -3,13 +3,16 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
+import traceback
 
 from app.database import connect_to_mongo, close_mongo_connection
 from app.redis_client import redis_client
-from app.routes import auth_routes, profile_routes
+from app.routes import auth_routes, profile_routes, secret_recommendations_routes
 
 # Conditionally import LangChain-dependent routes
 try:
@@ -72,6 +75,18 @@ class OptionsMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class LoggingMiddleware(BaseHTTPMiddleware):
+    """Log all requests for debugging"""
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/api/auth/send-otp"):
+            print(f"\n{'='*60}")
+            print(f"📥 INCOMING REQUEST: {request.method} {request.url.path}")
+            print(f"   Headers: {dict(request.headers)}")
+            # Don't read body here - it will be consumed. Just log the path.
+            print(f"{'='*60}\n")
+        return await call_next(request)
+
+
 # CORS middleware - add first (runs last, handles CORS)
 # Get allowed origins from environment variable, default to localhost for development
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
@@ -87,12 +102,59 @@ app.add_middleware(
     max_age=3600,
 )
 
+# Add logging middleware first (runs last, logs after everything)
+app.add_middleware(LoggingMiddleware)
+
 # Add OPTIONS middleware LAST (runs FIRST, intercepts OPTIONS before CORS)
 app.add_middleware(OptionsMiddleware)
+
+
+# Global exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors"""
+    print(f"\n{'='*60}")
+    print(f"❌ VALIDATION ERROR in {request.method} {request.url.path}:")
+    print(f"   Errors: {exc.errors()}")
+    try:
+        body = await request.body()
+        print(f"   Body: {body.decode('utf-8') if body else 'Empty'}")
+    except Exception as e:
+        print(f"   Could not read body: {e}")
+    print(f"{'='*60}\n")
+    return Response(
+        status_code=422,
+        content='{"detail": "Validation error. Please check your input."}',
+        media_type="application/json"
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Handle all unhandled exceptions (except HTTPException which FastAPI handles)"""
+    # Don't catch HTTPException - let FastAPI handle it
+    if isinstance(exc, (HTTPException, StarletteHTTPException)):
+        raise exc
+    
+    error_traceback = traceback.format_exc()
+    print(f"\n{'='*60}")
+    print(f"❌ UNHANDLED EXCEPTION in {request.method} {request.url.path}:")
+    print(f"   Error: {str(exc)}")
+    print(f"   Type: {type(exc).__name__}")
+    print(f"   Traceback:\n{error_traceback}")
+    print(f"{'='*60}\n")
+    
+    return Response(
+        status_code=500,
+        content='{"detail": "Internal server error. Please try again."}',
+        media_type="application/json"
+    )
+
 
 # Include routers
 app.include_router(auth_routes.router)
 app.include_router(profile_routes.router)
+app.include_router(secret_recommendations_routes.router)
 
 # Include analytics routes
 try:
