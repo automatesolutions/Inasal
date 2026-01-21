@@ -77,3 +77,4 @@ temp/
 
 # Google Cloud Service Account credentials
 backend/gen-lang-client-*.json
+backend/gen-lang-client-0542256476-399081ed3dc7.json
