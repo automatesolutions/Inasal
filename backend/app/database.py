@@ -38,7 +38,7 @@ async def connect_to_mongo():
     except Exception as e:
         HAS_MONGODB = False
         print(f"⚠️  MongoDB not available: {e}")
-        print("   Server will continue without MongoDB (using Strapi instead)")
+        print("   Server will continue without MongoDB")
         # Don't raise - allow server to start without MongoDB
 
 
@@ -52,6 +52,6 @@ async def close_mongo_connection():
 def get_database() -> AsyncIOMotorDatabase:
     """Get database instance"""
     if not HAS_MONGODB:
-        raise RuntimeError("MongoDB is not available. Use Strapi instead.")
+        raise RuntimeError("MongoDB is not available.")
     return db.database
 

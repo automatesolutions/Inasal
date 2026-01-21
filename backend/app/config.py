@@ -1,13 +1,18 @@
 """Application configuration"""
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
 
-    # Database
-    database_url: str = "mongodb://localhost:27017/bacolod_tourist"
+    # Google Cloud Platform
+    gcp_project_id: str = ""
+    gcp_credentials_path: str = ""  # Path to service account JSON file
+    bigquery_dataset_id: str = "bacolod_tourist"
+    gcs_bucket_name: str = "bacolod-tourist-storage"
+    gcs_bucket_location: str = "us-central1"
 
     # Redis
     redis_url: str = "redis://localhost:6379"
@@ -22,12 +27,12 @@ class Settings(BaseSettings):
     dev_mode_bypass_otp: bool = True  # Skip OTP verification in dev mode
     dev_mode_dummy_otp: str = "000000"  # Dummy OTP that always works in dev mode
 
-    # LLM Provider Settings - Anthropic Claude only
-    llm_provider: str = "anthropic"
+    # LLM Provider Settings - OpenAI
+    llm_provider: str = "openai"
     
-    # Anthropic Claude
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-3-haiku-20240307"  # Working model for your account
+    # OpenAI
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"  # Default OpenAI model (gpt-4o-mini, gpt-4o, gpt-3.5-turbo)
 
     # Email (for OTP)
     smtp_host: str = "smtp.gmail.com"
@@ -70,17 +75,15 @@ class Settings(BaseSettings):
     behavior_update_interval_hours: int = 24  # Update personality every 24 hours
     min_interactions_for_update: int = 4  # Lower threshold for faster personality updates
     
-    # Strapi Configuration
-    strapi_url: str = "http://localhost:1337"
-    strapi_api_token: str = ""  # API token for Strapi (create in Strapi admin panel)
-    
     # Make.com Webhooks
     make_webhook_chat: str = ""  # Make.com chat workflow webhook URL
     make_webhook_recommendations: str = ""  # Make.com recommendations workflow webhook URL
     make_webhook_persona: str = ""  # Make.com persona discovery workflow webhook URL
     
     # Bright Data
-    bright_data_api_key: str = ""  # Bright Data API token
+    # Note: Pydantic Settings looks for BRIGHT_DATA_API_KEY by default
+    # But we also support BRIGHT_DATA_API_TOKEN for compatibility
+    bright_data_api_key: str = ""
     bright_data_base_url: str = "https://api.brightdata.com"  # Base URL for Bright Data API
     bright_data_collector_id: str = ""  # Optional collector identifier (deprecated, using datasets now)
     bright_data_timeout_seconds: int = 20  # Network timeout for Bright Data calls
@@ -91,6 +94,12 @@ class Settings(BaseSettings):
     # Bright Data MCP (optional - only needed for specific features)
     bright_data_web_unlocker_zone: str = ""  # Optional: Web Unlocker zone for proxy/unlocking
     bright_data_browser_auth: str = ""  # Optional: Browser authentication credentials
+    
+    # Bright Data Residential Proxy (for Scrapy)
+    bright_data_zone: str = ""  # Zone name (e.g., "webscrape_amzn")
+    bright_data_residential_username: str = ""  # Full username (e.g., "brd-customer-hl_c2b71bb6-zone-webscraperamzn__proxy1")
+    bright_data_residential_password: str = ""  # Password for residential proxy
+    bright_data_residential_endpoint: str = "brd.superproxy.io:33335"  # Proxy endpoint (default: brd.superproxy.io:33335)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -98,6 +107,16 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",  # Ignore extra fields in .env (like old OpenAI/Ollama settings)
     )
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # If bright_data_api_key is empty, check for BRIGHT_DATA_API_TOKEN
+        # (Pydantic Settings looks for BRIGHT_DATA_API_KEY by default)
+        if not self.bright_data_api_key:
+            self.bright_data_api_key = os.getenv('BRIGHT_DATA_API_TOKEN', '')
+        # If openai_api_key is empty, check for OPENAI_API_KEY
+        if not self.openai_api_key:
+            self.openai_api_key = os.getenv('OPENAI_API_KEY', '')
 
 
 settings = Settings()

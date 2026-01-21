@@ -1,27 +1,30 @@
-# Inasal AI Web App
+# Bacolod Tourist - MOGI Chatbot
 
-An intelligent, AI-powered tourism platform designed specifically for visitors to Bacolod, Philippines. Inasal leverages advanced AI technology to provide personalized travel recommendations, discover hidden gems, and curate unique experiences tailored to each user's personality profile. The platform uses machine learning to understand user preferences through interactions and continuously adapts recommendations to match individual travel styles.
+An intelligent, AI-powered tourism platform designed specifically for visitors to Bacolod, Philippines. MOGI (M-O-G-I) is a friendly puppet mascot guide that leverages advanced AI technology to provide personalized travel recommendations, discover hidden gems, and curate unique experiences tailored to each user's personality profile.
 
 ## 🌟 Key Features
 
-- **AI-Powered Chat Assistant**: Interactive chat interface powered by Anthropic Claude for real-time travel advice
-- **Personalized Recommendations**: Smart destination suggestions based on personality inference and behavior tracking
-- **Hidden Gems Discovery**: Uncover off-the-beaten-path attractions and local favorites
-- **Personality-Based Matching**: Advanced personality profiling system that learns from user interactions
-- **Real-Time Data Integration**: Weather, events, and news updates for informed travel planning
-- **Social Profile Analysis**: Optional OAuth integration (Facebook, Twitter, LinkedIn) for enhanced personalization
-- **Interactive Maps**: Google Maps integration for location-based exploration
+- **🎭 MOGI Chatbot**: Friendly puppet mascot guide powered by OpenAI GPT that provides personalized travel advice and recommendations
+- **📱 Phone Number Authentication**: Philippine phone number-based login with OTP verification (supports both phone and email)
+- **🤖 Automatic Personality Analysis**: Background social media scraping using Scrapy + Bright Data Residential Proxy and LLM-based personality inference from Facebook/Instagram profiles
+- **🎯 Personality-Driven Recommendations**: Comprehensive recommendations across all categories (hotels, restaurants, beaches, mountains, resorts, events, businesses, hidden gems) matched to user personality
+- **💬 Interactive Chat Interface**: Chatbot-first experience with rich message formatting, clickable recommendation links, and personality-aware responses
+- **✨ Hidden Gems Discovery**: Uncover off-the-beaten-path attractions and secret spots tailored to user's personality traits
+- **📊 Comprehensive Welcome Message**: Automatic personalized welcome with all recommendations displayed in organized categories
+- **🔄 Real-Time Data Integration**: Weather, events, and news updates for informed travel planning
+- **🗺️ Interactive Maps**: Google Maps integration for location-based exploration
 
 ## 🏗️ Architecture Overview
 
-Inasal uses a modern hybrid architecture that combines the best of custom backend logic, headless CMS, and AI automation:
+MOGI uses a modern architecture combining FastAPI backend, Next.js frontend, and AI-powered services:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Frontend Layer                        │
-│              Next.js 16 (React + TypeScript)                │
-│              - User Interface & Interactions                 │
-│              - Real-time Chat Interface                     │
+│              Next.js 16 (React + TypeScript + Tailwind)     │
+│              - MOGI Chatbot Interface                        │
+│              - Phone/Email Authentication                    │
+│              - Recommendation Cards & Links                  │
 │              - Interactive Maps & Dashboards                │
 └───────────────────────┬─────────────────────────────────────┘
                         │
@@ -29,58 +32,50 @@ Inasal uses a modern hybrid architecture that combines the best of custom backen
 ┌─────────────────────────────────────────────────────────────┐
 │                    FastAPI Orchestration Layer               │
 │              - API Gateway & Request Routing                 │
-│              - Authentication & Authorization                 │
-│              - Business Logic & Data Processing             │
+│              - Phone/Email OTP Authentication                │
+│              - MOGI Chatbot (LangChain/OpenAI)              │
+│              - Personality Analysis Pipeline                 │
+│              - Social Media Scraping (Scrapy + Bright Data) │
+│              - Comprehensive Recommendations Service         │
 │              - Session Management & Caching                 │
 └───────────────┬───────────────────────┬───────────────────┘
                 │                       │
                 ▼                       ▼
     ┌───────────────────┐   ┌──────────────────────┐
-    │   Strapi CMS      │   │   Make.com AI         │
-    │   (Content Layer) │   │   (Automation Layer)  │
+    │  Google BigQuery  │   │   Make.com AI         │
+    │   (Database)      │   │   (Automation Layer)  │
     │                   │   │                       │
     │ - User Profiles   │   │ - AI Chat Workflows   │
-    │ - Attractions Data │   │ - Recommendation Gen  │
-    │ - Interaction Logs │   │ - Personality Analysis│
-    │ - Recommendations  │   │ - External API Calls  │
+    │ - Personality     │   │ - Recommendation Gen  │
+    │ - Recommendation  │   │ - Personality Analysis│
+    │   Scores          │   │ - External API Calls  │
+    │ - Chat Logs       │   │                       │
+    │ - Interaction Logs│   │                       │
     └───────────────────┘   └──────────────────────┘
+                │                       │
+                ▼                       │
+    ┌───────────────────┐              │
+    │ Google Cloud      │              │
+    │ Storage (Files)   │              │
+    │                   │              │
+    │ - Images          │              │
+    │ - Documents       │              │
+    └───────────────────┘              │
                 │                       │
                 └───────────┬───────────┘
                             ▼
             ┌───────────────────────────────┐
             │      Data Storage Layer       │
             │                               │
-            │  MongoDB Atlas (User Data)    │
-            │  Redis Cloud (Caching)        │
+            │  Google BigQuery (User Data)   │
+            │  Google Cloud Storage (Files)  │
+            │  Redis Cloud (Caching/OTP)    │
             │  FAISS (Vector Search)        │
+            │  Bright Data (Social Scraping) │
             └───────────────────────────────┘
 ```
 
 ## 🔗 Integration Architecture
-
-### How Strapi CMS is Connected
-
-**Strapi** serves as the content management backbone, storing and managing all structured data:
-
-1. **Connection Method**: FastAPI backend communicates with Strapi via REST API using HTTP requests
-2. **Authentication**: Bearer token authentication using API tokens generated in Strapi admin panel
-3. **Data Flow**:
-   - Frontend requests → FastAPI routes → `StrapiClient` → Strapi REST API → Response
-   - All content operations (CRUD) for attractions, user profiles, and interaction logs go through Strapi
-4. **Key Components**:
-   - `StrapiClient` class (`backend/app/strapi_client.py`) handles all Strapi API interactions
-   - Content types: User Profiles, Attractions, Interaction Logs, Recommendations
-   - Admin panel for non-technical content management
-
-**Example Flow:**
-```python
-# Backend route receives request
-@router.get("/api/attractions")
-async def get_attractions():
-    # FastAPI calls StrapiClient
-    attractions = await strapi_client.get_attractions()
-    return attractions
-```
 
 ### How Make.com AI Automation is Connected
 
@@ -88,7 +83,7 @@ async def get_attractions():
 
 1. **Connection Method**: Webhook-based HTTP POST requests from FastAPI to Make.com webhooks
 2. **Workflow Types**:
-   - **Chat Workflow**: Processes user messages, calls Anthropic Claude API, returns AI responses
+   - **Chat Workflow**: Processes user messages, calls OpenAI GPT API, returns AI responses
    - **Recommendations Workflow**: Generates personalized recommendations based on user profile
    - **Persona Discovery Workflow**: Analyzes user interactions to infer personality traits
 3. **Data Flow**:
@@ -110,19 +105,26 @@ async def chat(message: ChatMessage):
     )
     # Make.com workflow:
     # 1. Receives message
-    # 2. Calls Anthropic Claude API
+    # 2. Calls OpenAI GPT API
     # 3. Processes response
     # 4. Returns AI-generated reply
     return response
 ```
 
-### Integration Benefits
+### Social Media Scraping Architecture
 
-- **Separation of Concerns**: Content management (Strapi) vs. AI automation (Make.com) vs. Business logic (FastAPI)
-- **Scalability**: Each service can scale independently
-- **Flexibility**: Easy to modify AI workflows in Make.com without code changes
-- **Maintainability**: Non-technical users can manage content via Strapi admin panel
-- **Reliability**: Fallback mechanisms ensure service continues even if one component fails
+**Scrapy + Bright Data Residential Proxy** handles automated social media profile scraping:
+
+1. **Search Phase**: Uses Bright Data Google Search API to find Facebook/Instagram profiles
+2. **Scraping Phase**: Uses Scrapy spiders with Bright Data Residential Proxy to extract profile data
+3. **Data Flow**:
+   - User Login → Background Job → Bright Data Search → Profile URLs Found
+   - → Scrapy Spider (via Bright Data Proxy) → Profile Data Extracted
+   - → LLM Analysis → Personality Traits → MongoDB Storage
+4. **Key Components**:
+   - `SocialMediaScraper` (`backend/app/social_scraper.py`) - Orchestrates search and scraping
+   - `FacebookProfileSpider` / `InstagramProfileSpider` (`backend/app/scrapers/social_media_spider.py`) - Scrapy spiders
+   - `BrightDataProxyMiddleware` (`backend/app/scrapers/proxy_middleware.py`) - Injects Bright Data proxy
 
 ## 🛠️ Tech Stack
 
@@ -133,26 +135,21 @@ async def chat(message: ChatMessage):
 - **Vitest** for unit testing
 - **Playwright** for end-to-end testing
 
-### Backend Architecture (Hybrid Approach)
+### Backend Architecture
 
 **FastAPI** (Orchestration & Business Logic)
 - REST API gateway and request routing
-- Authentication & authorization (JWT-based)
-- Custom business logic and calculations
+- Phone/Email OTP authentication (JWT-based)
+- MOGI chatbot with personality-aware responses
+- Background personality analysis pipeline
+- Social media scraping integration (Scrapy + Bright Data Residential Proxy)
+- Comprehensive recommendations service
 - Session management with Redis
 - Rate limiting and security middleware
 - CORS configuration with environment-based origins
 
-**Strapi CMS** (Content Management)
-- Headless CMS for structured content
-- User profiles and personality data storage
-- Attractions database with rich metadata
-- Interaction logs and analytics
-- REST API for content operations
-- Admin panel for content editors
-
-**Make.com** (AI Automation & Workflows)
-- AI chat workflows with Anthropic Claude integration
+**Make.com** (AI Automation & Workflows) - Optional
+- AI chat workflows with OpenAI GPT integration
 - Personalized recommendation generation
 - Personality inference automation
 - External API integrations (weather, events, news)
@@ -160,60 +157,187 @@ async def chat(message: ChatMessage):
 - Webhook-based event processing
 
 ### Infrastructure
-- **MongoDB Atlas**: User data and session storage (legacy, migrating to Strapi)
-- **Redis Cloud**: Caching and session management
-- **FAISS**: Vector similarity search for recommendations (legacy)
+- **Google BigQuery**: User profiles, personality traits, recommendation scores, chat logs, and interaction history
+- **Google Cloud Storage**: File and image storage
+- **Redis Cloud**: Caching, OTP storage, and session management
+- **FAISS**: Vector similarity search for recommendations
+- **Bright Data**: Social media profile search and residential proxy for scraping
 - **Docker**: Containerization for local development
-- **Railway**: Backend and Strapi hosting
+- **Railway**: Backend hosting
 - **Vercel**: Frontend hosting with Next.js optimization
 
-## 🚀 Recent Updates & Deployment
-
-### Deployment Infrastructure
-
-The application now supports **staging and production environments** with automated deployments:
-
-- **Staging Environment**: Test changes safely before production
-  - Branch: `staging`
-  - URLs: `staging-backend.railway.app`, `staging-strapi.railway.app`, `staging-app.vercel.app`
-  
-- **Production Environment**: Live application for end users
-  - Branch: `main`
-  - URLs: `production-backend.railway.app`, `production-strapi.railway.app`, `production-app.vercel.app`
-
-### Configuration Files Added
-
-- `backend/Dockerfile` - Container configuration for backend deployment
-- `backend/railway.json` - Railway deployment configuration
-- `strapi-backend/Dockerfile` - Container configuration for Strapi
-- `strapi-backend/railway.json` - Railway deployment configuration
-- `frontend/vercel.json` - Vercel deployment configuration
-
-### Code Improvements
-
-- **CORS Configuration**: Updated to use environment variables (`ALLOWED_ORIGINS`) for flexible origin management
-- **Environment-Based Settings**: Production and staging use separate configurations
-- **Deployment Documentation**: Comprehensive guides for Railway, Vercel, MongoDB Atlas, and Redis Cloud
-
-See [DEPLOYMENT_GUIDE.html](./DEPLOYMENT_GUIDE.html) for complete deployment instructions.
-
-## 📦 Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js >= 18
 - pnpm >= 9
 - Python >= 3.11
 - Poetry (for Python dependency management)
-- Docker and Docker Compose (for MongoDB and Redis)
-- Make.com account (free tier available)
-- Anthropic API key
+- Docker and Docker Compose (for Redis)
+- Google Cloud Platform account (see [Google Cloud Setup](#-google-cloud-platform-setup) below)
+- Make.com account (free tier available, optional)
+- OpenAI API key (required for MOGI chatbot)
+- Bright Data account (optional, for social media scraping)
+
+## ☁️ Google Cloud Platform Setup
+
+This application uses **Google BigQuery** for database storage and **Google Cloud Storage** for file storage. Follow these steps to set up your GCP environment:
+
+### Step 1: Create a Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Click the project dropdown at the top
+3. Click **"New Project"**
+4. Enter project name: `bacolod-tourist` (or your preferred name)
+5. Note your **Project ID** (e.g., `gen-lang-client-0542256476`)
+6. Click **"Create"**
+
+### Step 2: Enable Required APIs
+
+1. Go to [APIs & Services > Library](https://console.cloud.google.com/apis/library)
+2. Enable the following APIs:
+   - **BigQuery API** - Search "BigQuery API" → Click → Enable
+   - **Cloud Storage API** - Search "Cloud Storage API" → Click → Enable
+
+### Step 3: Create a Service Account
+
+1. Go to [IAM & Admin > Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts)
+2. Click **"Create Service Account"**
+3. Enter details:
+   - **Service account name**: `bacolod-tourist-service`
+   - **Service account ID**: `bacolod-tourist-service` (auto-filled)
+   - Click **"Create and Continue"**
+4. Grant roles:
+   - **BigQuery Admin** (or at minimum: BigQuery Data Editor, BigQuery Job User)
+   - **Storage Admin** (or at minimum: Storage Object Admin)
+   - Click **"Continue"** → **"Done"**
+
+### Step 4: Create and Download Service Account Key
+
+1. Click on the service account you just created
+2. Go to **"Keys"** tab
+3. Click **"Add Key"** → **"Create new key"**
+4. Select **JSON** format
+5. Click **"Create"** - This downloads a JSON file (e.g., `gen-lang-client-0542256476-399081ed3dc7.json`)
+6. **Save this file** in your project: `backend/gen-lang-client-0542256476-399081ed3dc7.json`
+   - ⚠️ **Important**: Add this file to `.gitignore` to keep credentials secure!
+
+### Step 5: Create BigQuery Dataset
+
+1. Go to [BigQuery Console](https://console.cloud.google.com/bigquery)
+2. In the left sidebar, click your **Project ID**
+3. Click **"Create Dataset"** (or the **"⋮"** menu → **"Create dataset"**)
+4. Enter details:
+   - **Dataset ID**: `bacolod_tourist` (or `Inasal_app` if you prefer)
+   - **Location type**: `Multi-region` → Select `US (multiple regions in United States)` or `Region` → Select `us-central1`
+   - Click **"Create dataset"**
+5. **Note your Dataset ID** - you'll need it for environment variables
+
+**Note**: The application will automatically create the required tables (`user_profiles`, `interaction_logs`, `recommendation_scores`, `chat_logs`) on first connection.
+
+### Step 6: Create Cloud Storage Bucket
+
+1. Go to [Cloud Storage Console](https://console.cloud.google.com/storage/buckets)
+2. Click **"Create Bucket"**
+3. Enter details:
+   - **Name**: `bacolod-tourist-storage` (must be globally unique)
+   - **Location type**: `Multi-region` → Select `US (multiple regions in United States)` OR `Region` → Select `us-central1`
+   - **Storage class**: `Standard`
+   - **Access control**: `Uniform`
+   - Click **"Create"**
+4. **Note your Bucket Name** - you'll need it for environment variables
+
+### Step 7: Configure Environment Variables
+
+Update your `backend/.env` file with the GCP configuration:
+
+```env
+# Google Cloud Platform Configuration
+GCP_PROJECT_ID=gen-lang-client-0542256476          # Your Project ID from Step 1
+GCP_CREDENTIALS_PATH=backend/gen-lang-client-0542256476-399081ed3dc7.json  # Path to service account JSON
+BIGQUERY_DATASET_ID=Inasal_app                     # Dataset ID from Step 5
+GCS_BUCKET_NAME=inasal-app-storage                  # Bucket name from Step 6
+GCS_BUCKET_LOCATION=us                              # Location: "us" for multi-region, "us-central1" for region
+```
+
+### Step 8: Verify Setup
+
+1. **Test BigQuery Connection:**
+   ```bash
+   cd backend
+   poetry shell
+   poetry run python -c "from app.bigquery_client import bigquery_client; import asyncio; asyncio.run(bigquery_client.connect()); print('✅ BigQuery connected!')"
+   ```
+
+2. **Test Cloud Storage Connection:**
+   ```bash
+   poetry run python -c "from app.storage_client import storage_client; import asyncio; asyncio.run(storage_client.connect()); print('✅ Cloud Storage connected!')"
+   ```
+
+3. **Start the backend server:**
+   ```bash
+   poetry run uvicorn app.main:app --reload --port 8000
+   ```
+   
+   Check the console output - you should see:
+   ```
+   ✅ Connected to BigQuery: gen-lang-client-0542256476.Inasal_app
+   ✅ Connected to Cloud Storage: inasal-app-storage
+   ✅ Table user_profiles ready
+   ✅ Table interaction_logs ready
+   ✅ Table recommendation_scores ready
+   ✅ Table chat_logs ready
+   ```
+
+### Troubleshooting
+
+**Issue: "Permission denied" or "Access denied"**
+- Verify service account has correct roles (BigQuery Admin, Storage Admin)
+- Check that the JSON credentials file path is correct
+- Ensure the service account email matches the one in your JSON file
+
+**Issue: "Dataset not found"**
+- Verify `BIGQUERY_DATASET_ID` matches the exact Dataset ID in BigQuery console
+- Check that the dataset exists in the correct project
+
+**Issue: "Bucket not found"**
+- Verify `GCS_BUCKET_NAME` matches the exact bucket name (case-sensitive)
+- Ensure the bucket exists in the correct project
+- Check bucket permissions allow your service account access
+
+**Issue: "Credentials file not found"**
+- Verify `GCP_CREDENTIALS_PATH` is relative to the project root
+- Check the file exists at the specified path
+- Ensure the JSON file is valid (not corrupted)
+
+### BigQuery Tables Created Automatically
+
+The application automatically creates these tables on first connection:
+
+1. **`user_profiles`** - Stores user profiles with personality traits
+   - Columns: `user_id`, `email`, `phone_number`, `first_name`, `last_name`, `name`, `adventurous`, `cultural`, `foodie`, `nature_lover`, `history_buff`, `social`, `preferences` (JSON), `social_media_data` (JSON), `travel_history` (JSON), `created_at`, `updated_at`
+
+2. **`interaction_logs`** - Stores user interaction history
+   - Columns: `interaction_id`, `user_id`, `interaction_type`, `content` (JSON), `metadata` (JSON), `timestamp`
+
+3. **`recommendation_scores`** - Stores recommendation match scores
+   - Columns: `recommendation_id`, `user_id`, `item_id`, `item_name`, `category`, `match_score`, `personality_match_scores` (JSON), `recommendation_data` (JSON), `created_at`
+
+4. **`chat_logs`** - Stores chat messages and responses
+   - Columns: `chat_id`, `user_id`, `message`, `response`, `message_type`, `metadata` (JSON), `timestamp`
+
+### Cost Considerations
+
+- **BigQuery**: Free tier includes 10 GB storage and 1 TB queries per month
+- **Cloud Storage**: Free tier includes 5 GB storage per month
+- For production, monitor usage in [GCP Billing Console](https://console.cloud.google.com/billing)
 
 ### Installation
 
 1. **Clone the repository:**
 ```bash
 git clone <repo-url>
-cd Inasal
+cd Bacolod_Tourist
 ```
 
 2. **Install root dependencies:**
@@ -221,49 +345,66 @@ cd Inasal
 pnpm install
 ```
 
-3. **Set up backend:**
+3. **Set up infrastructure services:**
+```bash
+# Start Redis (MongoDB removed - using BigQuery instead)
+docker-compose up -d
+```
+
+4. **Set up Google Cloud Platform:**
+   - Follow the detailed [Google Cloud Platform Setup](#-google-cloud-platform-setup) guide above
+   - Create BigQuery dataset and Cloud Storage bucket
+   - Download service account credentials JSON file
+   - Place credentials file in `backend/` directory
+
+5. **Set up backend:**
 ```bash
 cd backend
 poetry install
-cp .env.example .env  # Create and configure your .env file
+# Create .env file with GCP configuration (see Environment Variables section below)
 cd ..
 ```
 
-4. **Set up Strapi:**
+6. **Set up frontend:**
 ```bash
-cd strapi-backend
-npm install
-npm run develop
-# Create admin account and API token in admin panel
+cd frontend
+# Create .env.local file (see Environment Variables section)
 cd ..
-```
-
-5. **Configure environment variables:**
-```env
-# Backend .env
-STRAPI_URL=http://localhost:1337
-STRAPI_API_TOKEN=your_strapi_token
-MAKE_WEBHOOK_CHAT=https://hook.make.com/your-chat-webhook
-MAKE_WEBHOOK_RECOMMENDATIONS=https://hook.make.com/your-recommendations-webhook
-MAKE_WEBHOOK_PERSONA=https://hook.make.com/your-persona-webhook
-ANTHROPIC_API_KEY=your_anthropic_key
-```
-
-6. **Start infrastructure services:**
-```bash
-docker-compose up -d
 ```
 
 7. **Run development servers:**
 ```bash
-# From root directory
+# From root directory - starts both frontend and backend
 pnpm dev
+
+# Or run separately:
+# Terminal 1 - Backend:
+cd backend && poetry shell && poetry run uvicorn app.main:app --reload --port 8000
+
+# Terminal 2 - Frontend:
+cd frontend && pnpm dev
 ```
 
 This will start:
 - Frontend on http://localhost:3000
 - Backend on http://localhost:8000
-- Strapi on http://localhost:1337
+
+### Testing the MOGI Chatbot
+
+1. Navigate to `http://localhost:3000/login`
+2. Click the "Phone" tab
+3. Enter:
+   - Phone: `09123456789` (or any valid Philippine format: `+63 9XX XXX XXXX` or `09XX XXX XXXX`)
+   - First Name: `Juan`
+   - Last Name: `Dela Cruz`
+4. Click "Send Verification Code"
+5. Enter OTP: `000000` (dev mode dummy OTP)
+6. Click "Verify & Login"
+7. You'll be redirected to `/chat` where MOGI will automatically greet you with:
+   - Personalized welcome message mentioning your personality
+   - Comprehensive recommendations across all categories
+   - Clickable links for each recommendation
+   - Personality summary
 
 ## 📁 Project Structure
 
@@ -271,38 +412,45 @@ This will start:
 .
 ├── frontend/              # Next.js application
 │   ├── src/
-│   │   ├── app/          # App Router pages
-│   │   │   ├── login/    # Authentication pages
+│   │   ├── app/
+│   │   │   ├── login/    # Phone/Email authentication
+│   │   │   ├── chat/     # MOGI chatbot interface
 │   │   │   ├── dashboard/# Main dashboard
-│   │   │   ├── chat/     # AI chat interface
 │   │   │   └── map/      # Interactive maps
-│   │   └── lib/          # API clients and utilities
+│   │   ├── components/
+│   │   │   ├── MOGIChatbot.tsx      # Main chatbot component
+│   │   │   ├── PhoneInput.tsx        # Philippine phone input
+│   │   │   ├── WelcomeMessage.tsx    # Welcome with recommendations
+│   │   │   ├── RecommendationCard.tsx
+│   │   │   └── RecommendationCategory.tsx
+│   │   └── lib/
 │   │       ├── api.ts    # FastAPI client
 │   │       └── analytics.ts
 │   └── ...
-├── backend/              # FastAPI application (orchestration layer)
+├── backend/              # FastAPI application
 │   ├── app/
 │   │   ├── auth.py       # Authentication logic
-│   │   ├── strapi_client.py    # Strapi API client
+│   │   ├── chat_agent.py # MOGI chatbot agent (LangChain)
+│   │   ├── mogi_persona.py # MOGI persona definition
+│   │   ├── social_scraper.py # Bright Data + Scrapy social scraping
+│   │   ├── personality_analyzer.py # LLM personality analysis
+│   │   ├── personality_pipeline.py # Complete analysis pipeline
+│   │   ├── welcome_message_service.py # Welcome message generation
+│   │   ├── comprehensive_recommendations.py # All categories
 │   │   ├── make_client.py      # Make.com webhook client
-│   │   ├── routes/        # API routes
-│   │   │   ├── auth_routes.py
-│   │   │   ├── chat_routes.py
+│   │   ├── scrapers/
+│   │   │   ├── social_media_spider.py # Scrapy spiders (Facebook/Instagram)
+│   │   │   ├── proxy_middleware.py # Bright Data proxy middleware
+│   │   │   └── scrapy_settings.py # Scrapy configuration
+│   │   ├── routes/
+│   │   │   ├── auth_routes.py  # Phone/Email OTP auth
+│   │   │   ├── chat_routes.py  # MOGI chat & welcome
 │   │   │   ├── recommendation_routes.py
 │   │   │   └── ...
 │   │   └── ...
 │   └── ...
-├── strapi-backend/        # Strapi CMS
-│   ├── src/
-│   │   ├── api/          # Content types
-│   │   │   ├── user-profile/
-│   │   │   ├── attraction/
-│   │   │   ├── interaction-log/
-│   │   │   └── recommendation/
-│   │   └── ...
-│   └── ...
-├── docker-compose.yml     # Local development services
-├── DEPLOYMENT_GUIDE.html # Complete deployment guide
+├── docker-compose.yml     # MongoDB & Redis
+├── system_architecture.html # Architecture flowchart
 └── README.md             # This file
 ```
 
@@ -320,7 +468,76 @@ pnpm test
 
 # E2E tests
 pnpm --filter frontend test:e2e
+
+# Test OpenAI connection
+cd backend
+poetry run python test_openai.py
 ```
+
+## 🔐 Environment Variables
+
+### Backend Required Variables (`backend/.env`)
+
+```env
+# Google Cloud Platform (Required - see Google Cloud Setup section above)
+GCP_PROJECT_ID=gen-lang-client-0542256476
+GCP_CREDENTIALS_PATH=backend/gen-lang-client-0542256476-399081ed3dc7.json
+BIGQUERY_DATASET_ID=Inasal_app
+GCS_BUCKET_NAME=inasal-app-storage
+GCS_BUCKET_LOCATION=us
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Authentication
+JWT_SECRET_KEY=your-secret-key-change-this-in-production
+JWT_ALGORITHM=HS256
+
+# Development Mode (enables dummy OTP "000000")
+DEV_MODE=true
+
+# Make.com Integration (optional - fallback to LangChain if not set)
+MAKE_WEBHOOK_CHAT=https://hook.make.com/your-chat-webhook
+MAKE_WEBHOOK_RECOMMENDATIONS=https://hook.make.com/your-recommendations-webhook
+MAKE_WEBHOOK_PERSONA=https://hook.make.com/your-persona-webhook
+
+# AI Services (required for MOGI chatbot)
+OPENAI_API_KEY=sk-proj-your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+
+# Bright Data (for social media scraping)
+BRIGHT_DATA_API_TOKEN=your_bright_data_api_token
+BRIGHT_DATA_ZONE=webscrape_amzn
+BRIGHT_DATA_RESIDENTIAL_USERNAME=brd-customer-{CUSTOMER_ID}-zone-{ZONE_NAME}__proxy1
+BRIGHT_DATA_RESIDENTIAL_PASSWORD=your_password
+BRIGHT_DATA_RESIDENTIAL_ENDPOINT=brd.superproxy.io:33335
+
+# CORS (comma-separated)
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+### Frontend Required Variables (`frontend/.env.local`)
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+## 🚢 Deployment
+
+The application is configured for deployment on:
+
+- **Railway**: Backend (FastAPI)
+- **Vercel**: Frontend (Next.js)
+- **Google Cloud Platform**: 
+  - BigQuery for database (user profiles, personality, recommendations, chat logs)
+  - Cloud Storage for file storage
+- **Redis Cloud**: Cache and session storage
+
+## 📚 Documentation
+
+- **[system_architecture.html](./system_architecture.html)** - Complete system architecture with file-by-file explanations and Google Cloud setup guide
+- **[Google Cloud Platform Setup](#-google-cloud-platform-setup)** - Detailed BigQuery and Cloud Storage setup instructions (see above)
+- **[backend/SCRAPY_SETUP.md](./backend/SCRAPY_SETUP.md)** - Scrapy + Bright Data Residential Proxy setup guide
 
 ## 🔄 Development Workflow
 
@@ -345,68 +562,12 @@ git merge feature/new-feature
 git push origin staging
 
 # 4. Test on staging environment
-# Visit: https://staging-app.vercel.app
 
 # 5. Deploy to production
 git checkout main
 git merge staging
 git push origin main
 ```
-
-## 📚 Documentation
-
-- **[DEPLOYMENT_GUIDE.html](./DEPLOYMENT_GUIDE.html)** - Complete deployment guide for Railway, Vercel, MongoDB Atlas, and Redis Cloud
-- **[STRAPI_SETUP_GUIDE.md](./STRAPI_SETUP_GUIDE.md)** - Detailed Strapi CMS setup instructions
-- **[FLOW_EXPLANATION.md](./FLOW_EXPLANATION.md)** - Architecture and data flow documentation
-- **[SETUP_INSTRUCTIONS.md](./SETUP_INSTRUCTIONS.md)** - Quick setup guide
-
-## 🔐 Environment Variables
-
-### Backend Required Variables
-
-```env
-# Database
-DATABASE_URL=mongodb+srv://...
-REDIS_URL=rediss://...
-
-# Authentication
-JWT_SECRET_KEY=your-secret-key
-JWT_ALGORITHM=HS256
-
-# Strapi Integration
-STRAPI_URL=http://localhost:1337
-STRAPI_API_TOKEN=your_strapi_token
-
-# Make.com Integration
-MAKE_WEBHOOK_CHAT=https://hook.make.com/your-chat-webhook
-MAKE_WEBHOOK_RECOMMENDATIONS=https://hook.make.com/your-recommendations-webhook
-MAKE_WEBHOOK_PERSONA=https://hook.make.com/your-persona-webhook
-
-# AI Services
-ANTHROPIC_API_KEY=your_anthropic_key
-ANTHROPIC_MODEL=claude-3-haiku-20240307
-
-# CORS (comma-separated)
-ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend.vercel.app
-```
-
-### Frontend Required Variables
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_STRAPI_URL=http://localhost:1337
-```
-
-## 🚢 Deployment
-
-The application is configured for deployment on:
-
-- **Railway**: Backend (FastAPI) and Strapi CMS
-- **Vercel**: Frontend (Next.js)
-- **MongoDB Atlas**: Database hosting
-- **Redis Cloud**: Cache and session storage
-
-See [DEPLOYMENT_GUIDE.html](./DEPLOYMENT_GUIDE.html) for step-by-step deployment instructions.
 
 ## 🤝 Contributing
 

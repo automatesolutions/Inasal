@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, oauthApi } from "@/lib/api";
+import PhoneInput from "@/components/PhoneInput";
 
 // OAuth Button Component
 function OAuthButton({ 
@@ -69,7 +70,9 @@ function OAuthButton({
 
 export default function LoginPage() {
   const router = useRouter();
+  const [usePhone, setUsePhone] = useState(true); // Default to phone login
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -83,10 +86,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      console.log("📤 Sending OTP request:", { email, firstName, lastName });
-      const result = await authApi.sendOTP(email, firstName, lastName);
-      console.log("✅ OTP sent successfully:", result);
-      setOtpSent(true);
+      if (usePhone) {
+        console.log("📤 Sending OTP request (phone):", { phoneNumber, firstName, lastName });
+        const result = await authApi.sendOTPPhone(phoneNumber, firstName, lastName);
+        console.log("✅ OTP sent successfully:", result);
+        setOtpSent(true);
+      } else {
+        console.log("📤 Sending OTP request (email):", { email, firstName, lastName });
+        const result = await authApi.sendOTP(email, firstName, lastName);
+        console.log("✅ OTP sent successfully:", result);
+        setOtpSent(true);
+      }
     } catch (err: any) {
       console.error("❌ Error sending OTP:", err);
       console.error("Error details:", {
@@ -111,9 +121,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await authApi.verifyOTP(email, otp, firstName, lastName);
-      // Redirect to dashboard on successful login
-      router.push("/dashboard");
+      if (usePhone) {
+        await authApi.verifyOTPPhone(phoneNumber, otp, firstName, lastName);
+      } else {
+        await authApi.verifyOTP(email, otp, firstName, lastName);
+      }
+      // Redirect to chat on successful login
+      router.push("/chat");
     } catch (err: any) {
       const fallbackMessage =
         typeof err?.detail === "string"
@@ -133,7 +147,7 @@ export default function LoginPage() {
             Welcome Back!
           </h1>
           <p className="text-amber-600">
-            Enter your email to receive a verification code
+            Enter your phone number or email to receive a verification code
           </p>
         </div>
 
@@ -190,24 +204,71 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSendOTP} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+              {/* Toggle between phone and email */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setUsePhone(true)}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    usePhone
+                      ? "bg-amber-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
                 >
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
-                  placeholder="your.email@example.com"
-                />
+                  Phone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUsePhone(false)}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    !usePhone
+                      ? "bg-amber-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Email
+                </button>
               </div>
+
+              {usePhone ? (
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Phone Number (Philippines)
+                  </label>
+                  <PhoneInput
+                    id="phone"
+                    value={phoneNumber}
+                    onChange={setPhoneNumber}
+                    required
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Format: +63 9XX XXX XXXX or 09XX XXX XXXX
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-900"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label
@@ -278,10 +339,10 @@ export default function LoginPage() {
                 placeholder="000000"
               />
               <p className="text-sm text-gray-500 mt-2">
-                We sent a code to {email}
+                We sent a code to {usePhone ? phoneNumber : email}
               </p>
               <p className="text-xs text-amber-600 mt-1">
-                Check your email inbox for the 6-digit code
+                {usePhone ? "Check your phone for the 6-digit code" : "Check your email inbox for the 6-digit code"}
               </p>
             </div>
             <button
@@ -299,11 +360,13 @@ export default function LoginPage() {
                 setError("");
                 setFirstName("");
                 setLastName("");
+                setPhoneNumber("");
+                setEmail("");
               }}
               disabled={loading}
               className="w-full text-amber-600 py-2 hover:text-amber-700 disabled:opacity-50"
             >
-              Change Email
+              Change {usePhone ? "Phone" : "Email"}
             </button>
           </form>
         )}

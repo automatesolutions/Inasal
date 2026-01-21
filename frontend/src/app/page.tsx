@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { isAuthenticated } from "@/lib/api";
 
 export default function Home() {
+  const router = useRouter();
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
+    
+    // Redirect authenticated users to chat
+    if (isAuthenticated()) {
+      router.push("/chat");
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">

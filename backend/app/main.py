@@ -1,6 +1,7 @@
 """FastAPI application entry point"""
 
 import os
+import traceback
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response, HTTPException, status
@@ -8,11 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
-import traceback
 
-from app.database import connect_to_mongo, close_mongo_connection
 from app.redis_client import redis_client
-from app.routes import auth_routes, profile_routes, secret_recommendations_routes
+from app.bigquery_client import bigquery_client
+from app.storage_client import storage_client
+from app.routes import auth_routes, profile_routes
 
 # Conditionally import LangChain-dependent routes
 try:
@@ -30,7 +31,17 @@ except ImportError as e:
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events"""
     # Startup
-    await connect_to_mongo()  # Will not fail if MongoDB unavailable
+    # Initialize Google Cloud services (BigQuery and Cloud Storage)
+    try:
+        await bigquery_client.connect()
+    except Exception as e:
+        print(f"⚠️  BigQuery not available: {e}")
+    
+    try:
+        await storage_client.connect()
+    except Exception as e:
+        print(f"⚠️  Cloud Storage not available: {e}")
+    
     try:
         await redis_client.connect()  # Will not fail if Redis unavailable
     except Exception:
@@ -45,7 +56,6 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    await close_mongo_connection()
     try:
         await redis_client.close()
     except Exception:
@@ -154,7 +164,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(auth_routes.router)
 app.include_router(profile_routes.router)
-app.include_router(secret_recommendations_routes.router)
 
 # Include analytics routes
 try:
@@ -222,6 +231,13 @@ async def root():
 @app.get("/health")
 async def health():
     """Detailed health check"""
-    # TODO: Add actual health checks for MongoDB and Redis
-    return {"status": "healthy", "service": "bacolod-tourist-api"}
+    # Health checks
+    health_status = {
+        "status": "healthy",
+        "service": "bacolod-tourist-api",
+        "bigquery": bigquery_client._is_available() if bigquery_client else False,
+        "cloud_storage": storage_client._is_available() if storage_client else False,
+        "redis": redis_client.is_connected() if redis_client else False
+    }
+    return health_status
 

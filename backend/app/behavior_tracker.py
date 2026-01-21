@@ -10,7 +10,7 @@ from langchain.output_parsers import OutputFixingParser, PydanticOutputParser
 from app.config import settings
 from app.llm_factory import get_chat_llm
 from app.user_profile import PersonalityTraits, UserProfileService
-from app.database import get_database
+from app.bigquery_client import bigquery_client
 from app.redis_client import redis_client
 
 # Try to import OpenAI errors for quota handling
@@ -49,7 +49,7 @@ class BehaviorTracker:
         # Use LLM factory (supports Ollama, OpenAI, Groq)
         self.llm = get_chat_llm(
             temperature=0.3,
-            model=settings.personality_inference_model if settings.llm_provider == "openai" else None
+            model=None  # Use default model from llm_factory
         )
 
     async def log_interaction(
@@ -57,17 +57,15 @@ class BehaviorTracker:
     ) -> bool:
         """Log a user interaction"""
         try:
-            db = get_database()
-            collection = db["interaction_logs"]
-
             interaction_log = {
                 "user_id": user_id,
                 "interaction_type": interaction_type,
-                "data": data,
+                "content": data,
+                "metadata": {},
                 "timestamp": datetime.utcnow(),
             }
 
-            await collection.insert_one(interaction_log)
+            await bigquery_client.insert_interaction_log(interaction_log)
 
             # Increment interaction counter in Redis
             counter_key = f"interactions:{user_id}:count"
@@ -95,25 +93,7 @@ class BehaviorTracker:
     ) -> List[Dict]:
         """Get recent interactions for a user"""
         try:
-            db = get_database()
-            collection = db["interaction_logs"]
-
-            cursor = (
-                collection.find({"user_id": user_id})
-                .sort("timestamp", -1)
-                .limit(limit)
-            )
-
-            interactions = []
-            async for doc in cursor:
-                if "_id" in doc:
-                    doc["_id"] = str(doc["_id"])
-                if "timestamp" in doc and isinstance(doc["timestamp"], datetime):
-                    doc["timestamp"] = doc["timestamp"].isoformat()
-                interactions.append(doc)
-
-            return interactions
-
+            return await bigquery_client.get_interaction_history(user_id, limit)
         except Exception as e:
             print(f"Error getting interactions: {e}")
             return []

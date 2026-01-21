@@ -25,7 +25,7 @@ class PersonalityInferenceEngine:
         # Use LLM factory (supports Ollama, OpenAI, Groq)
         self.llm = get_chat_llm(
             temperature=settings.personality_inference_temperature,
-            model=settings.personality_inference_model if settings.llm_provider == "openai" else None
+            model=None  # Use default model from llm_factory
         )
 
     async def infer_from_social_profile(self, social_data: SocialProfileData) -> PersonalityTraits:

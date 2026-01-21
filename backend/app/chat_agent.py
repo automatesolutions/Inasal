@@ -15,42 +15,23 @@ from langchain.prompts import (
 from app.config import settings
 from app.llm_factory import get_chat_llm
 from app.redis_client import redis_client
-from app.user_profile import UserProfileService
+from app.user_profile import UserProfileService, PersonalityTraits
+from app.mogi_persona import build_mogi_system_prompt
 
 profile_service = UserProfileService()
 
 
 class ChatAgent:
-    """Conversational AI agent for travel assistance"""
+    """Conversational AI agent for travel assistance with MOGI persona"""
 
     def __init__(self):
         self.memory_store = {}  # In-memory fallback if Redis fails
         self.chain = None
 
         # Use LLM factory (supports Ollama, OpenAI, Groq)
-        llm = get_chat_llm(temperature=0.7)
-
-        if llm:
-            prompt = ChatPromptTemplate.from_messages(
-                [
-                    SystemMessagePromptTemplate.from_template(
-                        "You are a friendly local guide from Bacolod, Philippines. "
-                        "You help tourists discover amazing places, hidden gems, and "
-                        "authentic experiences in Bacolod. Be warm, enthusiastic, and "
-                        "share local insights with a personal touch. Always speak in a "
-                        "conversational, friendly manner as if you're a local friend showing "
-                        "them around."
-                    ),
-                    MessagesPlaceholder(variable_name="history"),
-                    HumanMessagePromptTemplate.from_template("{input}"),
-                ]
-            )
-
-            self.llm = llm
-            self.prompt = prompt
-        else:
-            self.llm = None
-            self.prompt = None
+        self.llm = get_chat_llm(temperature=0.7)
+        # Prompt will be built dynamically based on user personality
+        self.prompt = None
 
     async def _get_memory(self, user_id: str) -> ConversationBufferMemory:
         """Get or create conversation memory for user"""
@@ -89,19 +70,46 @@ class ChatAgent:
             print(f"Error saving memory to Redis: {e}")
 
     async def chat(self, message: str, user_id: str = None) -> str:
-        """Process a chat message and return response"""
+        """Process a chat message and return response with MOGI persona"""
         if not self.llm:
             return (
                 "I'm currently unavailable. Please configure the OpenAI API key to enable chat."
             )
 
+        # Load user profile with personality
+        profile = None
+        personality = PersonalityTraits()
+        user_name = "friend"
+        
+        if user_id:
+            profile = await profile_service.get_profile(user_id)
+            if profile:
+                personality = profile.personality
+                user_name = profile.name or user_name
+
+        # Build MOGI prompt with personality context
+        mogi_prompt = build_mogi_system_prompt(
+            personality,
+            user_name,
+            profile.preferences.model_dump() if profile and profile.preferences else {}
+        )
+
+        # Create prompt template with MOGI persona
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                SystemMessagePromptTemplate.from_template(mogi_prompt),
+                MessagesPlaceholder(variable_name="history"),
+                HumanMessagePromptTemplate.from_template("{input}"),
+            ]
+        )
+
         # Get user's conversation memory
         memory = await self._get_memory(user_id or "anonymous")
         
-        # Create chain with user's memory
+        # Create chain with user's memory and MOGI persona
         chain = ConversationChain(
             llm=self.llm,
-            prompt=self.prompt,
+            prompt=prompt,
             memory=memory,
             verbose=False
         )
@@ -122,6 +130,22 @@ class ChatAgent:
                     content={"message": message, "response": response}
                 )
             )
+            
+            # Save chat log to BigQuery
+            try:
+                from app.bigquery_client import bigquery_client
+                await bigquery_client.save_chat_log(
+                    user_id=user_id,
+                    message=message,
+                    response=response,
+                    message_type="text",
+                    metadata={
+                        "personality": profile.personality.model_dump() if profile else {},
+                        "user_name": user_name
+                    }
+                )
+            except Exception as e:
+                print(f"Error saving chat log to BigQuery: {e}")
         
         return response
 

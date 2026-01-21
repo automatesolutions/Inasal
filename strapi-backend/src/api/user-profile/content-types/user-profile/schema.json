@@ -17,6 +17,16 @@
     "email": {
       "type": "email"
     },
+    "phone_number": {
+      "type": "string",
+      "unique": true
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
     "name": {
       "type": "string"
     },
@@ -27,6 +37,9 @@
       "type": "json"
     },
     "travel_history": {
+      "type": "json"
+    },
+    "social_media_data": {
       "type": "json"
     }
   }

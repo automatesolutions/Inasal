@@ -2,12 +2,11 @@
  * API client configuration and utilities
  * 
  * Architecture:
- * - Frontend → FastAPI (orchestration) → Strapi (content) + Make.com (AI workflows)
- * - All API calls go through FastAPI, which proxies to Strapi/Make.com as needed
+ * - Frontend → FastAPI (orchestration) → Make.com (AI workflows)
+ * - All API calls go through FastAPI
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://localhost:1337';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface ApiError {
   detail: string;
@@ -85,6 +84,16 @@ export const authApi = {
   },
 
   /**
+   * Send OTP to user's phone number
+   */
+  async sendOTPPhone(phoneNumber: string, firstName: string, lastName: string): Promise<{ message: string; phone_number: string }> {
+    return apiRequest('/api/auth/send-otp-phone', {
+      method: 'POST',
+      body: JSON.stringify({ phone_number: phoneNumber, first_name: firstName, last_name: lastName }),
+    });
+  },
+
+  /**
    * Verify OTP and get access token
    */
   async verifyOTP(
@@ -113,6 +122,47 @@ export const authApi = {
       localStorage.setItem('auth_token', response.access_token);
       localStorage.setItem('user_id', response.user_id);
       localStorage.setItem('user_email', response.email);
+    }
+
+    return response;
+  },
+
+  /**
+   * Verify OTP for phone number and get access token
+   */
+  async verifyOTPPhone(
+    phoneNumber: string,
+    otp: string,
+    firstName: string,
+    lastName: string
+  ): Promise<{
+    access_token: string;
+    token_type: string;
+    user_id: string;
+    email: string;
+    phone_number: string;
+    personality_analysis_status: string;
+  }> {
+    const response = await apiRequest<{
+      access_token: string;
+      token_type: string;
+      user_id: string;
+      email: string;
+      phone_number: string;
+      personality_analysis_status: string;
+    }>('/api/auth/verify-otp-phone', {
+      method: 'POST',
+      body: JSON.stringify({ phone_number: phoneNumber, otp, first_name: firstName, last_name: lastName }),
+    });
+
+    // Store token in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', response.access_token);
+      localStorage.setItem('user_id', response.user_id);
+      localStorage.setItem('user_email', response.email);
+      if (response.phone_number) {
+        localStorage.setItem('user_phone', response.phone_number);
+      }
     }
 
     return response;
@@ -198,6 +248,47 @@ export const recommendationApi = {
 };
 
 /**
+ * Chat API functions
+ */
+export interface WelcomeMessageResponse {
+  type: string;
+  content: string;
+  personality_summary: string;
+  recommendations: {
+    hotels: any[];
+    restaurants: any[];
+    accommodations: any[];
+    tourist_spots: any[];
+    beaches: any[];
+    mountains: any[];
+    resorts: any[];
+    places_to_avoid: any[];
+    businesses: any[];
+    events: any[];
+    hidden_gems: any[];
+  };
+}
+
+export const chatApi = {
+  /**
+   * Get welcome message with recommendations
+   */
+  async getWelcomeMessage(): Promise<WelcomeMessageResponse> {
+    return apiRequest<WelcomeMessageResponse>('/api/chat/welcome');
+  },
+
+  /**
+   * Send chat message to MOGI
+   */
+  async sendMessage(message: string): Promise<{ response: string }> {
+    return apiRequest<{ response: string }>('/api/chat/', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  },
+};
+
+/**
  * Secret Recommendations API functions (separate collection)
  */
 export interface SecretRecommendationResponse {
@@ -229,7 +320,7 @@ export const oauthApi = {
    * Initiate OAuth login
    */
   initiateLogin(provider: 'facebook' | 'twitter' | 'linkedin'): void {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     window.location.href = `${apiUrl}/api/auth/oauth/${provider}/authorize`;
   },
 
@@ -241,7 +332,7 @@ export const oauthApi = {
     provider: string;
   }> {
     // Status endpoint is public, no auth token needed
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const response = await fetch(`${apiUrl}/api/auth/oauth/${provider}/status`);
     if (!response.ok) {
       throw new Error(`Failed to check ${provider} status`);

@@ -22,9 +22,9 @@ class RedisClient:
                 decode_responses=True,
             )
             await self._client.ping()
-            print("✅ Connected to Redis")
+            print("[SUCCESS] Connected to Redis")
         except Exception as e:
-            print(f"⚠️  Redis not available: {e}")
+            print(f"[WARNING] Redis not available: {e}")
             print("   Server will continue without Redis")
             self._client = None
             # Don't raise - allow server to start without Redis
@@ -33,7 +33,7 @@ class RedisClient:
         """Close Redis connection"""
         if self._client:
             await self._client.close()
-            print("✅ Redis connection closed")
+            print("[SUCCESS] Redis connection closed")
 
     async def get(self, key: str) -> Optional[str]:
         """Get value from Redis"""
@@ -98,6 +98,10 @@ class RedisClient:
         if not self._client:
             await self.connect()
         return await self._client.expire(key, seconds)
+
+    def is_connected(self) -> bool:
+        """Check if Redis is connected"""
+        return self._client is not None
 
 
 redis_client = RedisClient()

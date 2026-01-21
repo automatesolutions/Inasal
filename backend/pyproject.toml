@@ -15,12 +15,15 @@ pydantic-settings = "^2.1.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-multipart = "^0.0.6"
-motor = "^3.3.2"
+# motor = "^3.3.2"  # Removed - using BigQuery instead
 redis = "^5.0.1"
+google-cloud-bigquery = "^3.25.0"
+google-cloud-storage = "^2.18.0"
+google-auth = "^2.34.0"
 langchain = "^0.3.21"
 langchain-openai = "^0.2.9"
 langchain-community = "^0.3.15"
-langchain-anthropic = "^0.3.0"
+# langchain-anthropic removed - using OpenAI instead
 # langchain-ollama removed - using OpenAI-compatible API instead
 langgraph = "^0.2.68"
 faiss-cpu = "^1.8.0"
@@ -32,8 +35,10 @@ httpx-oauth = "^0.14.0"
 cryptography = "^42.0.0"
 beautifulsoup4 = "^4.12.0"
 playwright = "^1.40.0"
-anthropic = "^0.72.0"
-mcp = "^1.0.0"
+# anthropic removed - using OpenAI instead
+mcp = "^1.0.0"  # Used by mcp_brightdata_client for Bright Data MCP integration
+scrapy = "^2.11.0"
+scrapy-playwright = "^0.0.33"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
