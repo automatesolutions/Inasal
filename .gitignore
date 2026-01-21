@@ -75,3 +75,5 @@ tmp/
 temp/
 *.tmp
 
+# Google Cloud Service Account credentials
+backend/gen-lang-client-*.json
