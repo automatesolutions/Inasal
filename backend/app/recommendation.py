@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import logging
 from typing import List, Optional, Dict
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from app.prompts import (
     CONTEXT_INJECTION_PROMPT,
     RECOMMENDATION_GENERATION_PROMPT,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RecommendationEngine:
@@ -52,13 +55,13 @@ class RecommendationEngine:
             try:
                 self.embeddings = get_embeddings()
             except Exception as e:
-                print(f"ℹ️  Could not initialize embeddings: {e}")
-                print("   Using LLM-only recommendations (no vector search).")
+                logger.warning(f"Could not initialize embeddings: {e}")
+                logger.info("Using LLM-only recommendations (no vector search).")
                 self.embeddings = None
         
         if not self.embeddings:
-            print("ℹ️  Embeddings not available. Using LLM-only recommendations (no vector search).")
-            print("   This is fine - recommendations will work using LLM filtering instead.")
+            logger.info("Embeddings not available. Using LLM-only recommendations (no vector search).")
+            logger.info("This is fine - recommendations will work using LLM filtering instead.")
 
         # Load attractions data
         if not self.attractions_data:
@@ -69,8 +72,8 @@ class RecommendationEngine:
             try:
                 await self._initialize_vector_store()
             except Exception as e:
-                print(f"⚠️  Could not initialize vector store: {e}")
-                print("   Continuing with LLM-only recommendations.")
+                logger.warning(f"Could not initialize vector store: {e}")
+                logger.info("Continuing with LLM-only recommendations.")
                 self.vector_store = None
 
     async def _load_attractions_data(self):
@@ -539,11 +542,25 @@ class RecommendationEngine:
         trait_mapping_json = json.dumps(trait_mapping, indent=2)
         trait_mapping_escaped = trait_mapping_json.replace("{", "{{").replace("}", "}}")
         
+        # Generate hidden traits based on visible personality traits
+        hidden_traits_dict = {
+            "introverted_extroverted": 0.5 + (user_profile.personality.social - 0.5) * 0.5,
+            "risk_taker": user_profile.personality.adventurous,
+            "luxury_seeker": 1.0 - 0.3,  # Default
+            "budget_conscious": 0.5,  # Default
+            "nightlife_lover": user_profile.personality.social * 0.5,
+            "offbeat_explorer": user_profile.personality.adventurous * 0.7,
+            "local_culture_seeker": user_profile.personality.cultural
+        }
+        hidden_traits_json = json.dumps(hidden_traits_dict, indent=2)
+        hidden_traits_escaped = hidden_traits_json.replace("{", "{{").replace("}", "}}")
+
         context_json = json.dumps(context, indent=2)
         context_escaped = context_json.replace("{", "{{").replace("}", "}}")
 
         prompt_text = RECOMMENDATION_GENERATION_PROMPT.format(
             personality_traits=personality_traits,
+            hidden_traits=hidden_traits_escaped,
             travel_style=user_profile.preferences.travel_style or "not specified",
             budget_range=user_profile.preferences.budget_range or "not specified",
             trait_mapping=trait_mapping_escaped,
@@ -552,12 +569,13 @@ class RecommendationEngine:
         )
 
         try:
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", "You are a travel concierge AI. Provide personalized recommendations. For each recommendation, mention the attraction name clearly."),
-                ("human", prompt_text),
-            ])
-            chain = prompt | self.llm
-            response = await chain.ainvoke({})
+            # Since prompt_text is already fully formatted, we can invoke the LLM directly
+            # without ChatPromptTemplate to avoid it trying to parse variables again
+            system_message = "You are a travel concierge AI. Provide personalized recommendations. For each recommendation, mention the attraction name clearly."
+            full_prompt = f"{system_message}\n\n{prompt_text}"
+            
+            # Invoke LLM directly with the formatted prompt
+            response = await self.llm.ainvoke(full_prompt)
             
             # Parse LLM response to extract recommended attractions
             content = response.content if hasattr(response, "content") else str(response)

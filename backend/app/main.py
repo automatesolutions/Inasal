@@ -1,6 +1,8 @@
 """FastAPI application entry point"""
 
 import os
+import json
+import logging
 import traceback
 from contextlib import asynccontextmanager
 
@@ -15,14 +17,16 @@ from app.bigquery_client import bigquery_client
 from app.storage_client import storage_client
 from app.routes import auth_routes, profile_routes
 
+logger = logging.getLogger(__name__)
+
 # Conditionally import LangChain-dependent routes
 try:
     from app.routes import chat_routes, recommendation_routes, rag_routes
     from app.recommendation import recommendation_engine
     HAS_LANGCHAIN = True
 except ImportError as e:
-    print(f"⚠️  LangChain dependencies not available: {e}")
-    print("   Server will start without AI features (chat, recommendations, RAG)")
+    logger.warning(f"LangChain dependencies not available: {e}")
+    logger.info("Server will start without AI features (chat, recommendations, RAG)")
     HAS_LANGCHAIN = False
     recommendation_engine = None
 
@@ -35,12 +39,12 @@ async def lifespan(app: FastAPI):
     try:
         await bigquery_client.connect()
     except Exception as e:
-        print(f"⚠️  BigQuery not available: {e}")
+        logger.warning(f"BigQuery not available: {e}")
     
     try:
         await storage_client.connect()
     except Exception as e:
-        print(f"⚠️  Cloud Storage not available: {e}")
+        logger.warning(f"Cloud Storage not available: {e}")
     
     try:
         await redis_client.connect()  # Will not fail if Redis unavailable
@@ -51,7 +55,16 @@ async def lifespan(app: FastAPI):
         try:
             await recommendation_engine.initialize()
         except Exception as e:
-            print(f"⚠️  Recommendation engine initialization failed: {e}")
+            logger.error(f"Recommendation engine initialization failed: {e}")
+    
+    # Start background BigQuery retry task
+    try:
+        from app.bigquery_retry_queue import start_background_retry_task
+        background_retry_task = start_background_retry_task()
+        logger.info("Background BigQuery retry task started")
+    except Exception as e:
+        logger.warning(f"Failed to start background retry task: {e}")
+        background_retry_task = None
     
     yield
     
@@ -60,6 +73,14 @@ async def lifespan(app: FastAPI):
         await redis_client.close()
     except Exception:
         pass
+    
+    # Cancel background task
+    if background_retry_task:
+        try:
+            background_retry_task.cancel()
+            logger.info("Background BigQuery retry task stopped")
+        except Exception:
+            pass
 
 
 app = FastAPI(
@@ -122,19 +143,46 @@ app.add_middleware(OptionsMiddleware)
 # Global exception handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle validation errors"""
-    print(f"\n{'='*60}")
-    print(f"❌ VALIDATION ERROR in {request.method} {request.url.path}:")
-    print(f"   Errors: {exc.errors()}")
+    """Handle validation errors - return detailed error messages"""
+    errors = exc.errors()
+    
+    logger.error(f"VALIDATION ERROR in {request.method} {request.url.path}:")
+    logger.error(f"   Number of errors: {len(errors)}")
+    logger.error(f"   Errors: {json.dumps(errors, indent=2)}")
     try:
         body = await request.body()
-        print(f"   Body: {body.decode('utf-8') if body else 'Empty'}")
+        logger.error(f"   Request Body: {body.decode('utf-8') if body else 'Empty'}")
     except Exception as e:
-        print(f"   Could not read body: {e}")
-    print(f"{'='*60}\n")
+        logger.error(f"   Could not read body: {e}")
+    
+    # Extract detailed error messages
+    error_messages = []
+    for error in errors:
+        # Get field location (skip 'body' prefix if present)
+        loc = error.get('loc', [])
+        # Filter out 'body' from location path for cleaner messages
+        field_parts = [str(l) for l in loc if l != 'body']
+        field = '.'.join(field_parts) if field_parts else 'input'
+        
+        msg = error.get('msg', 'Invalid value')
+        error_type = error.get('type', '')
+        
+        # Create user-friendly error message
+        if field and field != 'input':
+            error_messages.append(f"{field}: {msg}")
+        else:
+            error_messages.append(msg)
+    
+    # Always return detailed errors, never generic message
+    if error_messages:
+        error_detail = '. '.join(error_messages)
+    else:
+        # Fallback: return the raw error structure if parsing failed
+        error_detail = f"Validation failed: {json.dumps(errors)}"
+    
     return Response(
         status_code=422,
-        content='{"detail": "Validation error. Please check your input."}',
+        content=json.dumps({"detail": error_detail}),
         media_type="application/json"
     )
 
@@ -147,12 +195,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         raise exc
     
     error_traceback = traceback.format_exc()
-    print(f"\n{'='*60}")
-    print(f"❌ UNHANDLED EXCEPTION in {request.method} {request.url.path}:")
-    print(f"   Error: {str(exc)}")
-    print(f"   Type: {type(exc).__name__}")
-    print(f"   Traceback:\n{error_traceback}")
-    print(f"{'='*60}\n")
+    logger.error(f"UNHANDLED EXCEPTION in {request.method} {request.url.path}:")
+    logger.error(f"   Error: {str(exc)}")
+    logger.error(f"   Type: {type(exc).__name__}")
+    logger.error(f"   Traceback:\n{error_traceback}")
     
     return Response(
         status_code=500,
@@ -177,7 +223,7 @@ try:
     from app.routes import oauth_routes
     app.include_router(oauth_routes.router)
 except ImportError:
-    print("⚠️  OAuth routes not available (authlib may not be installed)")
+    logger.warning("OAuth routes not available (authlib may not be installed)")
 
 # Include LangChain-dependent routers if available
 if HAS_LANGCHAIN:

@@ -5,12 +5,17 @@ import os
 from typing import Optional, Dict, Any
 import httpx
 from datetime import datetime
+from dotenv import load_dotenv
+import uuid as uuid_lib
+
+# Load environment variables from .env file
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
 class InstantDBClient:
-    """Handle all InstantDB operations for user data"""
+    """Handle all InstantDB operations for user data using Admin HTTP API"""
     
     def __init__(self):
         self.app_id = os.getenv("INSTANTDB_APP_ID")
@@ -24,6 +29,14 @@ class InstantDBClient:
             logger.info(f"✅ InstantDB initialized with app_id: {self.app_id[:8]}...")
         else:
             logger.warning("⚠️  InstantDB credentials not found in .env")
+    
+    def _get_headers(self) -> Dict[str, str]:
+        """Get required headers for InstantDB API"""
+        return {
+            "Authorization": f"Bearer {self.admin_token}",
+            "App-Id": self.app_id,
+            "Content-Type": "application/json"
+        }
     
     def _is_available(self) -> bool:
         """Check if InstantDB is available"""
@@ -54,22 +67,14 @@ class InstantDBClient:
                 "updated_at": datetime.utcnow().isoformat(),
             }
             
-            # Use HTTP API to write to InstantDB
-            headers = {
-                "Authorization": f"Bearer {self.admin_token}",
-                "Content-Type": "application/json"
-            }
+            # Use HTTP Admin API for transact (write)
+            headers = self._get_headers()
+            url = f"{self.base_url}/admin/transact"
             
-            url = f"{self.base_url}/v1/app/{self.app_id}/db/write"
-            
+            # Prepare transaction step: ["update", collection, id, data]
             payload = {
-                "queries": [
-                    {
-                        "action": "set",
-                        "collection": "user_profiles",
-                        "id": user_id,
-                        "value": user_profile
-                    }
+                "steps": [
+                    ["update", "user_profiles", user_id, user_profile]
                 ]
             }
             
@@ -92,32 +97,32 @@ class InstantDBClient:
             return None
         
         try:
-            headers = {
-                "Authorization": f"Bearer {self.admin_token}",
-                "Content-Type": "application/json"
-            }
+            headers = self._get_headers()
+            url = f"{self.base_url}/admin/query"
             
-            url = f"{self.base_url}/v1/app/{self.app_id}/db/read"
-            
+            # Use InstaQL syntax to query
             payload = {
-                "queries": [
-                    {
-                        "action": "get",
-                        "collection": "user_profiles",
-                        "id": user_id
+                "query": {
+                    "user_profiles": {
+                        "$": {
+                            "where": {
+                                "id": user_id
+                            }
+                        }
                     }
-                ]
+                }
             }
             
             response = await self.client.post(url, json=payload, headers=headers)
             
             if response.status_code == 200:
                 data = response.json()
-                if "results" in data and len(data["results"]) > 0:
-                    result = data["results"][0]
-                    if result and "value" in result:
-                        logger.info(f"✅ Retrieved user profile from InstantDB: {user_id}")
-                        return result["value"]
+                
+                # InstaQL returns results in data["user_profiles"] as an array
+                if "user_profiles" in data and len(data["user_profiles"]) > 0:
+                    profile = data["user_profiles"][0]
+                    logger.info(f"✅ Retrieved user profile from InstantDB: {user_id}")
+                    return profile
             
             return None
             
@@ -147,21 +152,13 @@ class InstantDBClient:
                     if trait in update_data["personality"]:
                         updated_profile[trait] = update_data["personality"][trait]
             
-            headers = {
-                "Authorization": f"Bearer {self.admin_token}",
-                "Content-Type": "application/json"
-            }
+            headers = self._get_headers()
+            url = f"{self.base_url}/admin/transact"
             
-            url = f"{self.base_url}/v1/app/{self.app_id}/db/write"
-            
+            # Prepare transaction step: ["update", collection, id, data]
             payload = {
-                "queries": [
-                    {
-                        "action": "set",
-                        "collection": "user_profiles",
-                        "id": user_id,
-                        "value": updated_profile
-                    }
+                "steps": [
+                    ["update", "user_profiles", user_id, updated_profile]
                 ]
             }
             
