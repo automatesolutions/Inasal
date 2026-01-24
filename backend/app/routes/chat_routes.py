@@ -31,7 +31,36 @@ class RichMessage(BaseModel):
     personality_summary: Optional[str] = None
 
 
-@router.post("/", response_model=ChatResponse)
+@router.get("/debug/personality-cache/{user_id}")
+async def debug_personality_cache(user_id: str):
+    """Debug endpoint to check cached personality"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Direct access to cache
+    from app.user_profile import _personality_cache, _cache_lock
+    
+    with _cache_lock:
+        cached = _personality_cache.get(user_id)
+        cache_size = len(_personality_cache)
+    
+    profile = await profile_service.get_profile(user_id)
+    
+    logger.info(f"🔍 Cache debug for {user_id}:")
+    logger.info(f"   Cached personality: {cached.model_dump() if cached else 'None'}")
+    logger.info(f"   Cache size: {cache_size}")
+    logger.info(f"   Profile from DB: {profile.personality.model_dump() if profile else 'None'}")
+    
+    return {
+        "user_id": user_id,
+        "cached_personality": cached.model_dump() if cached else None,
+        "db_personality": profile.personality.model_dump() if profile else None,
+        "cache_size": cache_size,
+        "all_cached_users": list(_personality_cache.keys())
+    }
+
+
+
 async def chat(
     chat_message: ChatMessage, current_user: dict = Depends(get_current_user)
 ):
@@ -75,23 +104,49 @@ async def get_welcome_message(
     Called automatically when user first enters chat
     """
     import logging
+    import asyncio
     logger = logging.getLogger(__name__)
     
     user_id = current_user["user_id"]
+    logger.info(f"🎯 Welcome endpoint called for user {user_id}")
     
-    # Get user profile - this will check cache if BigQuery has defaults
+    # Wait for personality analysis to complete and cache to be populated
+    # Personality analysis runs in background, so we need to wait for it
+    personality = None
+    for attempt in range(60):  # Wait up to 30 seconds (60 * 0.5s)
+        profile = await profile_service.get_profile(user_id)
+        if profile:
+            personality_dict = profile.personality.model_dump()
+            # Check if personality has meaningful traits (any > 0.5)
+            has_traits = any(v > 0.5 for v in personality_dict.values())
+            
+            if has_traits:
+                logger.info(f"✅ Got personality with traits on attempt {attempt}: {personality_dict}")
+                personality = profile.personality
+                break
+            else:
+                if attempt == 0 or attempt % 10 == 0:  # Log every 10 attempts
+                    logger.info(f"⏳ Waiting for personality analysis... (attempt {attempt+1}/60, traits: {personality_dict})")
+                await asyncio.sleep(0.5)
+        else:
+            logger.warning(f"⚠️ Profile not found on attempt {attempt}")
+            await asyncio.sleep(0.5)
+    
+    # If no personality found after waiting, get whatever is available
+    if personality is None:
+        logger.warning(f"⚠️ No personality found after 30s wait for {user_id}")
+        profile = await profile_service.get_profile(user_id)
+        if profile:
+            personality = profile.personality
+        else:
+            personality = PersonalityTraits()  # Use defaults
+    
+    # Get user name
     profile = await profile_service.get_profile(user_id)
+    user_name = profile.name if profile and profile.name else "friend"
     
-    if not profile:
-        logger.warning(f"No profile found for user {user_id}")
-        personality = PersonalityTraits()  # Use default 0.5 for all traits
-        user_name = "friend"
-    else:
-        personality = profile.personality
-        user_name = profile.name if profile.name else "friend"
-        
-        personality_dict = personality.model_dump()
-        logger.info(f"📋 Using personality for {user_id}: {personality_dict}")
+    personality_dict = personality.model_dump()
+    logger.info(f"📋 Final personality for {user_id}: {personality_dict}")
     
     # Generate welcome message - the LLM will intelligently use personality if available
     welcome_service = WelcomeMessageService()
