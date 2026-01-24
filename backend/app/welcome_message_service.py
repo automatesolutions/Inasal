@@ -14,7 +14,7 @@ class WelcomeMessageService:
         self.llm = get_chat_llm(temperature=0.7)
 
     def _get_top_traits(self, personality: PersonalityTraits) -> list:
-        """Get top 2-3 personality traits"""
+        """Get top 2-3 personality traits - only if they're above default (0.5)"""
         traits = {
             "adventurous": personality.adventurous,
             "cultural": personality.cultural,
@@ -23,9 +23,17 @@ class WelcomeMessageService:
             "history_buff": personality.history_buff,
             "social": personality.social
         }
-        sorted_traits = sorted(traits.items(), key=lambda x: x[1], reverse=True)
+        
+        # Filter out traits that are at default (0.5) or below
+        meaningful_traits = {k: v for k, v in traits.items() if v > 0.5}
+        
+        # If no meaningful traits, return empty list
+        if not meaningful_traits:
+            return []
+        
+        sorted_traits = sorted(meaningful_traits.items(), key=lambda x: x[1], reverse=True)
         top_2 = sorted_traits[:2]
-        return [f"{trait} ({score:.1f})" for trait, score in top_2]
+        return [f"{trait} ({int(score * 100)}%)" for trait, score in top_2]
 
     async def generate_welcome_message(
         self,
@@ -33,60 +41,92 @@ class WelcomeMessageService:
         personality: PersonalityTraits
     ) -> str:
         """
-        Generate personalized welcome message mentioning user's personality
+        Generate personalized welcome message using LLM with personality context.
+        The LLM will intelligently incorporate personality traits if available.
         """
-        # Identify top personality traits
-        top_traits = self._get_top_traits(personality)
-        top_traits_text = ", ".join(top_traits) if top_traits else "exploring new places"
+        personality_dict = personality.model_dump()
+        logger.info(f"Generating welcome message for {user_name} with personality: {personality_dict}")
         
-        welcome_prompt = f"""
-        You are MOGI, a friendly puppet mascot guide for Bacolod, Philippines.
+        # Check if personality has meaningful traits (any > 0.5)
+        meaningful_traits = {k: v for k, v in personality_dict.items() if v > 0.5}
         
-        Generate a warm, personalized welcome message for {user_name} that:
-        1. Introduces yourself as MOGI
-        2. Mentions their personality traits: {top_traits_text}
-        3. Explains that you've prepared personalized recommendations
-        4. Invites them to explore the recommendations or ask questions
-        
-        Keep it friendly, enthusiastic, and conversational (can use Filipino-English mix like "Kumusta!").
-        Maximum 3-4 sentences.
-        
-        Welcome Message:
-        """
+        if meaningful_traits:
+            # Include personality context in the prompt
+            traits_description = ", ".join(
+                [f"{k.replace('_', ' ')}: {int(v * 100)}%" for k, v in meaningful_traits.items()]
+            )
+            logger.info(f"✅ Using analyzed personality traits: {traits_description}")
+            
+            prompt = f"""You are MOGI, a friendly puppy mascot guide for Bacolod, Philippines.
+
+Generate a warm, personalized welcome message for {user_name}.
+
+User's personality profile:
+{traits_description}
+
+Based on these personality traits, generate a personalized welcome message that:
+1. Introduces yourself as MOGI
+2. Shows you understand their interests based on their personality
+3. Mentions you've prepared personalized recommendations for them
+4. Invites them to explore or ask questions
+
+Use a friendly, enthusiastic, conversational tone (you can mix Filipino and English like "Kumusta!").
+Keep it to 3-4 sentences maximum.
+
+Welcome Message:"""
+        else:
+            # No meaningful traits - personality not analyzed yet
+            logger.warning(f"⚠️ No meaningful personality traits - generating generic welcome")
+            
+            prompt = f"""You are MOGI, a friendly puppy mascot guide for Bacolod, Philippines.
+
+Generate a warm welcome message for {user_name} that:
+1. Introduces yourself as MOGI
+2. Explains you're here to help discover amazing places in Bacolod
+3. Mentions you've prepared recommendations
+4. Invites them to explore or ask questions
+
+Use a friendly, enthusiastic, conversational tone (you can mix Filipino and English like "Kumusta!").
+Keep it to 3-4 sentences maximum.
+
+Welcome Message:"""
         
         try:
-            response = await self.llm.ainvoke(welcome_prompt)
+            response = await self.llm.ainvoke(prompt)
             content = response.content if hasattr(response, 'content') else str(response)
+            logger.info(f"✅ LLM generated welcome: {content[:100]}...")
             return content.strip()
         except Exception as e:
             logger.error(f"Error generating welcome message: {e}")
             # Fallback welcome message
-            return f"Kumusta {user_name}! I'm MOGI, your friendly guide to Bacolod! 🎭 I'm here to help you discover amazing places - from delicious inasal spots to hidden beaches. What would you like to explore today?"
+            return f"Kumusta {user_name}! I'm MOGI, your friendly puppy mascot guide to Bacolod! 🐾 I'm here to help you discover amazing places - from delicious food to hidden gems. What would you like to explore today?"
 
     def format_personality_summary(
         self,
         personality: PersonalityTraits
     ) -> str:
-        """Format personality summary for display"""
-        traits = {
-            "Adventurous": personality.adventurous,
-            "Cultural": personality.cultural,
-            "Foodie": personality.foodie,
-            "Nature Lover": personality.nature_lover,
-            "History Buff": personality.history_buff,
-            "Social": personality.social
+        """Format personality summary for display using actual personality data"""
+        personality_dict = personality.model_dump()
+        logger.info(f"Formatting personality summary: {personality_dict}")
+        
+        # Filter traits that are above default (0.5)
+        meaningful_traits = {
+            k.replace('_', ' ').title(): v 
+            for k, v in personality_dict.items() 
+            if v > 0.5
         }
         
-        # Get top 3 traits
-        sorted_traits = sorted(traits.items(), key=lambda x: x[1], reverse=True)
-        top_3 = sorted_traits[:3]
-        
-        summary_parts = []
-        for trait, score in top_3:
-            if score > 0.6:
-                summary_parts.append(f"{trait} ({score:.0%})")
-        
-        if summary_parts:
-            return f"Your top interests: {', '.join(summary_parts)}"
-        else:
+        if not meaningful_traits:
+            # No meaningful traits yet
+            logger.info("No analyzed traits yet - returning generic message")
             return "We're still learning about your interests. Let's explore together!"
+        
+        # Sort by score and get top 3
+        sorted_traits = sorted(meaningful_traits.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        # Format as readable list
+        summary_parts = [f"{trait}: {int(score * 100)}%" for trait, score in sorted_traits]
+        summary = f"Your top interests: {', '.join(summary_parts)}"
+        
+        logger.info(f"✅ Personality summary: {summary}")
+        return summary
