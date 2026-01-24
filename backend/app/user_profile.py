@@ -3,10 +3,12 @@
 import json
 from datetime import datetime
 from typing import Optional
+from threading import Lock
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from app.bigquery_client import bigquery_client
+from app.instantdb_client import instantdb_client
 from app.models.interaction_log import InteractionLog, InteractionLogCreate
 
 
@@ -54,13 +56,44 @@ class UserProfile(BaseModel):
     )
 
 
+# In-memory cache for personality data that's been analyzed but not yet saved to BigQuery
+# This handles the case where BigQuery streaming buffer prevents immediate updates
+_personality_cache: dict[str, PersonalityTraits] = {}
+_cache_lock = Lock()
+
+
 class UserProfileService:
     """Service for managing user profiles using BigQuery"""
 
+    def _get_cached_personality(self, user_id: str) -> Optional[PersonalityTraits]:
+        """Get personality from cache if available"""
+        with _cache_lock:
+            return _personality_cache.get(user_id)
+    
+    def _set_cached_personality(self, user_id: str, personality: PersonalityTraits):
+        """Store personality in cache"""
+        with _cache_lock:
+            _personality_cache[user_id] = personality
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"💾 CACHE SET for {user_id}: {personality.model_dump()}")
+            logger.info(f"💾 Cache size: {len(_personality_cache)} users")
+    
+    def _clear_cached_personality(self, user_id: str):
+        """Clear personality from cache (after successful BigQuery update)"""
+        with _cache_lock:
+            _personality_cache.pop(user_id, None)
+
     async def get_profile(self, user_id: str) -> Optional[UserProfile]:
-        """Get user profile by ID"""
+        """Get user profile by ID - uses InstantDB for real-time data"""
         try:
-            profile_data = await bigquery_client.get_user_profile(user_id)
+            # Try InstantDB first (real-time, no streaming buffer issues!)
+            profile_data = await instantdb_client.get_user_profile(user_id)
+            
+            if not profile_data:
+                # Fallback to BigQuery for historical data
+                profile_data = await bigquery_client.get_user_profile(user_id)
+            
             if not profile_data:
                 return None
             
@@ -69,8 +102,13 @@ class UserProfileService:
                 profile_data["preferences"] = json.loads(profile_data["preferences"])
             if profile_data.get("social_media_data") and isinstance(profile_data["social_media_data"], str):
                 profile_data["social_media_data"] = json.loads(profile_data["social_media_data"])
-            if profile_data.get("travel_history") and isinstance(profile_data["travel_history"], str):
+            # Handle travel_history - can be None, string, or list
+            if profile_data.get("travel_history") is None:
+                profile_data["travel_history"] = []
+            elif isinstance(profile_data["travel_history"], str):
                 profile_data["travel_history"] = json.loads(profile_data["travel_history"])
+            elif not isinstance(profile_data["travel_history"], list):
+                profile_data["travel_history"] = []
             
             # Build personality from individual columns
             personality = PersonalityTraits(
@@ -81,6 +119,24 @@ class UserProfileService:
                 history_buff=profile_data.get("history_buff", 0.5),
                 social=profile_data.get("social", 0.5),
             )
+            
+            # Check if we have a cached personality
+            personality_dict = personality.model_dump()
+            all_defaults = all(v == 0.5 for v in personality_dict.values())
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            if all_defaults:
+                logger.info(f"⚠️  Personality all defaults for {user_id}, checking cache...")
+                cached_personality = self._get_cached_personality(user_id)
+                if cached_personality:
+                    logger.info(f"✅ Found cached personality for {user_id}: {cached_personality.model_dump()}")
+                    personality = cached_personality
+                else:
+                    logger.info(f"❌ No cached personality for {user_id}")
+            else:
+                logger.info(f"✅ InstantDB has personality for {user_id}: {personality_dict}")
+            
             profile_data["personality"] = personality
             
             # Build preferences
@@ -92,7 +148,7 @@ class UserProfileService:
             
             return UserProfile(**profile_data)
         except Exception as e:
-            print(f"Error getting profile from BigQuery: {e}")
+            print(f"Error getting profile: {e}")
             return None
 
     async def get_profile_by_email(self, email: str) -> Optional[UserProfile]:
@@ -128,8 +184,13 @@ class UserProfileService:
                     profile_data["preferences"] = json.loads(profile_data["preferences"])
                 if profile_data.get("social_media_data") and isinstance(profile_data["social_media_data"], str):
                     profile_data["social_media_data"] = json.loads(profile_data["social_media_data"])
-                if profile_data.get("travel_history") and isinstance(profile_data["travel_history"], str):
+                # Handle travel_history - can be None, string, or list
+                if profile_data.get("travel_history") is None:
+                    profile_data["travel_history"] = []
+                elif isinstance(profile_data["travel_history"], str):
                     profile_data["travel_history"] = json.loads(profile_data["travel_history"])
+                elif not isinstance(profile_data["travel_history"], list):
+                    profile_data["travel_history"] = []
                 
                 personality = PersonalityTraits(
                     adventurous=profile_data.get("adventurous", 0.5),
@@ -139,6 +200,26 @@ class UserProfileService:
                     history_buff=profile_data.get("history_buff", 0.5),
                     social=profile_data.get("social", 0.5),
                 )
+                
+                # Check if we have a cached personality (analyzed but not yet saved to BigQuery)
+                # Use cached personality if BigQuery values are all defaults (0.5)
+                personality_dict = personality.model_dump()
+                all_defaults = all(v == 0.5 for v in personality_dict.values())
+                user_id = profile_data.get("user_id")
+                
+                import logging
+                logger = logging.getLogger(__name__)
+                if all_defaults and user_id:
+                    logger.info(f"⚠️  BigQuery personality all defaults for {user_id} (by email), checking cache...")
+                    cached_personality = self._get_cached_personality(user_id)
+                    if cached_personality:
+                        logger.info(f"✅ Found cached personality for {user_id}: {cached_personality.model_dump()}")
+                        personality = cached_personality
+                    else:
+                        logger.info(f"❌ No cached personality for {user_id}")
+                elif user_id:
+                    logger.info(f"✅ BigQuery has personality for {user_id}: {personality_dict}")
+                
                 profile_data["personality"] = personality
                 
                 prefs_dict = profile_data.get("preferences", {})
@@ -162,11 +243,15 @@ class UserProfileService:
         first_name: Optional[str] = None,
         last_name: Optional[str] = None
     ) -> Optional[UserProfile]:
-        """Create a new user profile"""
+        """Create a new user profile - uses InstantDB for instant creation"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
             # Check if profile already exists
             existing = await self.get_profile(user_id)
             if existing:
+                logger.info(f"Profile already exists for user_id: {user_id}")
                 return existing
             
             profile = UserProfile(
@@ -178,34 +263,99 @@ class UserProfileService:
                 last_name=last_name,
             )
             
-            profile_dict = profile.model_dump(exclude={"personality", "preferences"})
-            profile_dict["personality"] = profile.personality.model_dump()
-            profile_dict["preferences"] = profile.preferences.model_dump()
+            # Use mode='json' to serialize datetime objects to strings
+            profile_dict = profile.model_dump(exclude={"personality", "preferences"}, mode='json')
+            profile_dict["personality"] = profile.personality.model_dump(mode='json')
+            profile_dict["preferences"] = profile.preferences.model_dump(mode='json')
             
-            success = await bigquery_client.create_user_profile(profile_dict)
+            logger.info(f"Creating profile in InstantDB: user_id={user_id}, email={email}")
+            
+            # Create in InstantDB (instant, no 90-minute lock!)
+            success = await instantdb_client.create_user_profile(user_id, profile_dict)
+            
             if success:
-                return await self.get_profile(user_id)
-            return None
+                logger.info(f"✅ Profile created instantly in InstantDB, fetching...")
+                created_profile = await self.get_profile(user_id)
+                if created_profile:
+                    logger.info(f"✅ Profile verified in InstantDB: {user_id}")
+                    # Also save to BigQuery asynchronously for analytics
+                    try:
+                        await bigquery_client.create_user_profile(profile_dict)
+                        logger.info(f"💾 Profile also saved to BigQuery for analytics")
+                    except Exception as bq_error:
+                        logger.warning(f"⚠️  BigQuery save skipped (not critical): {bq_error}")
+                else:
+                    logger.warning(f"⚠️  Profile created but not found when fetching: {user_id}")
+                return created_profile
+            else:
+                logger.error(f"❌ InstantDB create_user_profile returned False for {user_id}")
+                return None
         except Exception as e:
-            print(f"Error creating profile in BigQuery: {e}")
+            import traceback
+            logger.error(f"❌ Error creating profile in InstantDB: {e}", exc_info=True)
+            print(f"❌ Error creating profile: {e}")
+            print(f"   Traceback: {traceback.format_exc()}")
             return None
 
     async def update_personality(
         self, user_id: str, traits: PersonalityTraits
     ) -> Optional[UserProfile]:
-        """Update user personality traits"""
+        """Update user personality traits - uses InstantDB for instant update (NO 90-MINUTE LOCK!)"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Store in cache immediately (for real-time access)
+        self._set_cached_personality(user_id, traits)
+        logger.info(f"💾 Stored personality in cache for {user_id}: {traits.model_dump()}")
+        
         try:
             update_data = {
-                "personality": traits.model_dump()
+                "adventurous": traits.adventurous,
+                "cultural": traits.cultural,
+                "foodie": traits.foodie,
+                "nature_lover": traits.nature_lover,
+                "history_buff": traits.history_buff,
+                "social": traits.social,
             }
             
-            success = await bigquery_client.update_user_profile(user_id, update_data)
+            logger.info(f"Updating personality in InstantDB for {user_id}: {update_data}")
+            
+            # Update in InstantDB INSTANTLY (no streaming buffer!)
+            success = await instantdb_client.update_user_profile(user_id, update_data)
+            
             if success:
-                return await self.get_profile(user_id)
-            return None
+                # Clear cache after successful InstantDB update
+                self._clear_cached_personality(user_id)
+                updated_profile = await self.get_profile(user_id)
+                if updated_profile:
+                    logger.info(f"✅ Personality updated instantly in InstantDB for {user_id}")
+                    # Also save to BigQuery asynchronously for analytics
+                    try:
+                        await bigquery_client.update_user_profile(user_id, update_data)
+                        logger.info(f"💾 Personality also saved to BigQuery for analytics")
+                    except Exception as bq_error:
+                        logger.warning(f"⚠️  BigQuery save failed (non-critical): {bq_error}")
+                else:
+                    logger.warning(f"⚠️  Personality update succeeded but profile not found: {user_id}")
+                return updated_profile
+            else:
+                logger.error(f"❌ InstantDB update_user_profile returned False for {user_id}")
+                logger.info(f"💾 Personality remains in cache for {user_id} - will be used immediately")
+                # Return profile with cached personality
+                profile = await self.get_profile(user_id)
+                if profile:
+                    profile.personality = traits
+                return profile
         except Exception as e:
-            print(f"Error updating personality in BigQuery: {e}")
-            return None
+            import traceback
+            logger.error(f"❌ Error updating personality in InstantDB: {e}", exc_info=True)
+            print(f"❌ Error updating personality: {e}")
+            print(f"   Traceback: {traceback.format_exc()}")
+            # Return profile with cached personality even on error
+            profile = await self.get_profile(user_id)
+            if profile:
+                profile.personality = traits
+            return profile
 
     async def update_preferences(
         self, user_id: str, preferences: UserPreferences
