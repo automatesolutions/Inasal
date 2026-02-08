@@ -44,7 +44,7 @@ def _parse_json_field(value):
         try:
             return json.loads(value)
         except json.JSONDecodeError:
-            print(f"⚠️  WARNING: Failed to parse JSON string: {value[:100]}...")
+            print(f"WARNING: Failed to parse JSON string: {value[:100]}...")
             return []
     if isinstance(value, list):
         return value
@@ -112,7 +112,7 @@ async def get_recommendations(
         restaurants = all_recs.get("restaurants", [])
         tourist_spots = all_recs.get("tourist_spots", [])
         entertainment = all_recs.get("tourist_spots", [])  # Use tourist spots as entertainment
-        secret_recommendations = all_recs.get("hidden_gems", [])
+        secret_recommendations = all_recs.get("secret_spots", [])
         
         return RecommendationsResponse(
             hotels=hotels[:10],
@@ -155,13 +155,13 @@ async def get_recommendations(
 async def get_secret_recommendations(
     current_user: dict = Depends(get_current_user),
 ):
-    """Get secret recommendations (hidden gems)"""
+    """Get secret recommendations (secret spots)"""
     user_id = current_user["user_id"]
     
     try:
         service = ComprehensiveRecommendationsService()
         all_recs = await service.get_all_recommendations(user_id)
-        secret_recommendations = all_recs.get("hidden_gems", [])
+        secret_recommendations = all_recs.get("secret_spots", [])
         
         return {
             "secret_recommendations": secret_recommendations,

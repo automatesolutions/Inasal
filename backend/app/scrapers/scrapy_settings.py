@@ -20,8 +20,8 @@ DOWNLOAD_DELAY = 3
 RANDOMIZE_DOWNLOAD_DELAY = True
 
 # The download delay setting will honor only one of:
+# Use CONCURRENT_REQUESTS_PER_DOMAIN only: DownloaderAwarePriorityQueue does not support CONCURRENT_REQUESTS_PER_IP
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
-CONCURRENT_REQUESTS_PER_IP = 1
 
 # Disable cookies (optional, can help avoid detection)
 COOKIES_ENABLED = False

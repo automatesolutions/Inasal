@@ -8,9 +8,10 @@ interface RecommendationCategoryProps {
   icon: string;
   items: any[];
   isHiddenGem?: boolean;
+  isSecretSpot?: boolean;
 }
 
-export function RecommendationCategory({ title, icon, items, isHiddenGem = false }: RecommendationCategoryProps) {
+export function RecommendationCategory({ title, icon, items, isHiddenGem = false, isSecretSpot = false }: RecommendationCategoryProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   if (!items || items.length === 0) {
@@ -45,6 +46,7 @@ export function RecommendationCategory({ title, icon, items, isHiddenGem = false
               key={item.id || idx}
               recommendation={item}
               isHiddenGem={isHiddenGem}
+              isSecretSpot={isSecretSpot}
             />
           ))}
         </div>

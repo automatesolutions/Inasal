@@ -65,22 +65,37 @@ class CloudStorageClient:
     ) -> Optional[str]:
         """Upload file to Cloud Storage and return public URL"""
         if not self._is_available():
+            logger.warning(f"GCS not available, cannot upload {file_path}")
             return None
             
         try:
+            logger.info(f"Uploading to bucket '{self.bucket_name}': {file_path} ({len(file_data)} bytes)")
             bucket = self.client.bucket(self.bucket_name)
-            blob = bucket.blob(file_path)
             
+            # Verify bucket exists
+            if not bucket.exists():
+                logger.error(f"Bucket '{self.bucket_name}' does not exist!")
+                return None
+            
+            blob = bucket.blob(file_path)
             blob.upload_from_string(file_data, content_type=content_type)
+            
+            logger.info(f"✅ Successfully uploaded {file_path} to GCS bucket '{self.bucket_name}'")
             
             if make_public:
                 blob.make_public()
-                return blob.public_url
+                url = blob.public_url
+                logger.info(f"   Public URL: {url}")
+                return url
             else:
                 # Return signed URL (valid for 1 hour)
-                return blob.generate_signed_url(expiration=3600)
+                url = blob.generate_signed_url(expiration=3600)
+                logger.info(f"   Signed URL generated (expires in 1 hour)")
+                return url
         except Exception as e:
-            logger.error(f"Error uploading file {file_path}: {e}")
+            logger.error(f"❌ Error uploading file {file_path} to bucket '{self.bucket_name}': {e}")
+            import traceback
+            logger.error(f"Upload error traceback: {traceback.format_exc()}")
             return None
     
     async def delete_file(self, file_path: str) -> bool:

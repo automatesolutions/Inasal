@@ -10,10 +10,11 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated
+    // Check if user is authenticated - run immediately
     if (!isAuthenticated()) {
       // Redirect to login if not authenticated
-      router.push("/login");
+      console.log("User not authenticated, redirecting to login");
+      router.replace("/login");
       return;
     }
     setIsLoading(false);

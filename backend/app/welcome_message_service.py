@@ -47,8 +47,8 @@ class WelcomeMessageService:
         personality_dict = personality.model_dump()
         logger.info(f"Generating welcome message for {user_name} with personality: {personality_dict}")
         
-        # Check if personality has meaningful traits (any > 0.5)
-        meaningful_traits = {k: v for k, v in personality_dict.items() if v > 0.5}
+        # Check if personality has meaningful traits (any > 0.4, lowered from 0.5 to include moderate scores)
+        meaningful_traits = {k: v for k, v in personality_dict.items() if v > 0.4}
         
         if meaningful_traits:
             # Include personality context in the prompt
@@ -107,19 +107,38 @@ Welcome Message:"""
     ) -> str:
         """Format personality summary for display using actual personality data"""
         personality_dict = personality.model_dump()
-        logger.info(f"Formatting personality summary: {personality_dict}")
+        logger.warning(f"🔍 Formatting personality summary: {personality_dict}")
         
-        # Filter traits that are above default (0.5)
+        # Check if all traits are at default (0.5) - this means analysis hasn't completed
+        all_default = all(v == 0.5 for v in personality_dict.values())
+        if all_default:
+            logger.warning(f"⚠️ All personality traits are at default (0.5) - analysis may not be complete")
+            return "We're still learning about your interests. Let's explore together!"
+        
+        # Filter traits that are above moderate threshold (0.4)
+        # Include traits > 0.4 to catch meaningful but moderate scores
         meaningful_traits = {
             k.replace('_', ' ').title(): v 
             for k, v in personality_dict.items() 
-            if v > 0.5
+            if v > 0.4  # Include traits above 0.4
         }
+        
+        logger.warning(f"🔍 Meaningful traits (>0.4): {meaningful_traits}")
         
         if not meaningful_traits:
             # No meaningful traits yet
-            logger.info("No analyzed traits yet - returning generic message")
+            logger.warning("⚠️ No analyzed traits > 0.4 - returning generic message")
             return "We're still learning about your interests. Let's explore together!"
+        
+        # Sort by score and get top 3
+        sorted_traits = sorted(meaningful_traits.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        # Format as readable list
+        summary_parts = [f"{trait}: {int(score * 100)}%" for trait, score in sorted_traits]
+        summary = f"Your top interests: {', '.join(summary_parts)}"
+        
+        logger.warning(f"✅ Personality summary: {summary}")
+        return summary
         
         # Sort by score and get top 3
         sorted_traits = sorted(meaningful_traits.items(), key=lambda x: x[1], reverse=True)[:3]

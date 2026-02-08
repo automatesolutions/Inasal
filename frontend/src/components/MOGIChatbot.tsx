@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { chatApi, WelcomeMessageResponse } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { chatApi, WelcomeMessageResponse, isAuthenticated } from "@/lib/api";
 import { WelcomeMessage } from "./WelcomeMessage";
 
 interface ChatMessage {
@@ -13,6 +15,7 @@ interface ChatMessage {
 }
 
 export default function MOGIChatbot() {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,31 +31,83 @@ export default function MOGIChatbot() {
   }, [messages]);
 
   useEffect(() => {
-    // Load welcome message on mount
+    // Load welcome message on mount - only if authenticated
     const loadWelcome = async () => {
       if (welcomeLoaded) return;
+      
+      // Check if user is authenticated before making API call
+      if (!isAuthenticated()) {
+        console.warn("User not authenticated, skipping welcome message load");
+        setMessages([{
+          role: "assistant",
+          type: "text",
+          content: "Please log in to get personalized recommendations!"
+        }]);
+        setWelcomeLoaded(true);
+        return;
+      }
       
       try {
         setLoading(true);
         const welcomeData = await chatApi.getWelcomeMessage();
         
+        // Debug: Log what we received
+        console.log("Welcome data received:", {
+          hasContent: !!welcomeData.content,
+          hasRecommendations: !!welcomeData.recommendations,
+          recommendationCounts: welcomeData.recommendations ? {
+            hotels: welcomeData.recommendations.hotels?.length || 0,
+            restaurants: welcomeData.recommendations.restaurants?.length || 0,
+            tourist_spots: welcomeData.recommendations.tourist_spots?.length || 0,
+            secret_spots: welcomeData.recommendations.secret_spots?.length || 0,
+            total: Object.values(welcomeData.recommendations || {}).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
+          } : null,
+          personality_summary: welcomeData.personality_summary
+        });
+        
         setMessages([{
           role: "assistant",
           type: "welcome",
           content: welcomeData.content,
-          recommendations: welcomeData.recommendations,
-          personality_summary: welcomeData.personality_summary
+          recommendations: welcomeData.recommendations || {
+            hotels: [],
+            restaurants: [],
+            accommodations: [],
+            tourist_spots: [],
+            beaches: [],
+            mountains: [],
+            resorts: [],
+            places_to_avoid: [],
+            businesses: [],
+            events: [],
+            secret_spots: []
+          },
+          personality_summary: welcomeData.personality_summary || ""
         }]);
         
         setWelcomeLoaded(true);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading welcome message:", err);
-        // Set default welcome message
-        setMessages([{
-          role: "assistant",
-          type: "text",
-          content: "Kumusta! I'm MOGI, your friendly guide to Bacolod! 🎭 What would you like to explore today?"
-        }]);
+        
+        // If it's an authentication error, redirect to login
+        if (err?.status === 401 || err?.detail?.includes("credentials")) {
+          setMessages([{
+            role: "assistant",
+            type: "text",
+            content: "Your session has expired. Redirecting to login..."
+          }]);
+          // Redirect to login after showing message
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        } else {
+          // Set default welcome message for other errors
+          setMessages([{
+            role: "assistant",
+            type: "text",
+            content: "Kumusta! I'm MOGI, your friendly guide to Bacolod! 🎭 What would you like to explore today?"
+          }]);
+        }
         setWelcomeLoaded(true);
       } finally {
         setLoading(false);
@@ -95,23 +150,25 @@ export default function MOGIChatbot() {
   const renderMessage = (msg: ChatMessage, idx: number) => {
     if (msg.type === "welcome") {
       return (
-        <WelcomeMessage
-          content={msg.content || ""}
-          recommendations={msg.recommendations || {
-            hotels: [],
-            restaurants: [],
-            accommodations: [],
-            tourist_spots: [],
-            beaches: [],
-            mountains: [],
-            resorts: [],
-            places_to_avoid: [],
-            businesses: [],
-            events: [],
-            hidden_gems: []
-          }}
-          personality_summary={msg.personality_summary || ""}
-        />
+        <div key={idx}>
+          <WelcomeMessage
+            content={msg.content || ""}
+            recommendations={msg.recommendations || {
+              hotels: [],
+              restaurants: [],
+              accommodations: [],
+              tourist_spots: [],
+              beaches: [],
+              mountains: [],
+              resorts: [],
+              places_to_avoid: [],
+              businesses: [],
+              events: [],
+              secret_spots: []
+            }}
+            personality_summary={msg.personality_summary || ""}
+          />
+        </div>
       );
     }
 
@@ -129,7 +186,13 @@ export default function MOGIChatbot() {
         >
           {msg.role === "assistant" && (
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">🎭</span>
+              <Image
+                src="/Image2.png"
+                alt="MOGI"
+                width={24}
+                height={24}
+                className="rounded-full object-cover"
+              />
               <span className="font-semibold text-sm">MOGI</span>
             </div>
           )}
@@ -143,8 +206,14 @@ export default function MOGIChatbot() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex flex-col">
       <div className="container mx-auto px-4 py-8 flex-1 flex flex-col max-w-6xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-amber-400 rounded-full flex items-center justify-center text-2xl">
-            🎭
+          <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-amber-400">
+            <Image
+              src="/Image2.png"
+              alt="MOGI"
+              width={48}
+              height={48}
+              className="w-full h-full object-cover"
+            />
           </div>
           <h1 className="text-3xl font-bold text-amber-900">
             Chat with MOGI
@@ -181,7 +250,7 @@ export default function MOGIChatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask MOGI about Bacolod..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-gray-900 placeholder:text-gray-500"
                 disabled={loading}
               />
               <button

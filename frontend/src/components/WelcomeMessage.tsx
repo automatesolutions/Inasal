@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { RecommendationCategory } from "./RecommendationCategory";
 
 interface WelcomeMessageProps {
@@ -15,7 +16,7 @@ interface WelcomeMessageProps {
     places_to_avoid: any[];
     businesses: any[];
     events: any[];
-    hidden_gems: any[];
+    secret_spots: any[];
   };
   personality_summary: string;
 }
@@ -23,10 +24,16 @@ interface WelcomeMessageProps {
 export function WelcomeMessage({ content, recommendations, personality_summary }: WelcomeMessageProps) {
   return (
     <div className="welcome-message bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-6 mb-4">
-      {/* MOGI Avatar Placeholder */}
+      {/* MOGI Avatar */}
       <div className="flex items-start gap-4 mb-4">
-        <div className="w-16 h-16 bg-amber-400 rounded-full flex items-center justify-center text-3xl flex-shrink-0">
-          🎭
+        <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-amber-400 flex-shrink-0">
+          <Image
+            src="/Image2.png"
+            alt="MOGI"
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div className="flex-1">
           <h2 className="text-xl font-bold text-amber-900 mb-2">MOGI</h2>
@@ -44,15 +51,26 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
       
       {/* Recommendations by Category */}
       <div className="recommendations-grid mt-6">
-        {recommendations.hidden_gems && recommendations.hidden_gems.length > 0 && (
+        {/* Debug: Log recommendations count */}
+        {console.log("Recommendations received:", {
+          secret_spots: recommendations.secret_spots?.length || 0,
+          hotels: recommendations.hotels?.length || 0,
+          restaurants: recommendations.restaurants?.length || 0,
+          tourist_spots: recommendations.tourist_spots?.length || 0,
+          beaches: recommendations.beaches?.length || 0,
+          total: Object.values(recommendations).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
+        })}
+        
+        {/* Tourist Spots - First */}
+        {recommendations.tourist_spots && recommendations.tourist_spots.length > 0 && (
           <RecommendationCategory
-            title="✨ Hidden Gems"
-            icon="💎"
-            items={recommendations.hidden_gems}
-            isHiddenGem={true}
+            title="Tourist Spots"
+            icon="📍"
+            items={recommendations.tourist_spots}
           />
         )}
         
+        {/* Hotels */}
         {recommendations.hotels && recommendations.hotels.length > 0 && (
           <RecommendationCategory
             title="Hotels"
@@ -61,6 +79,7 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
           />
         )}
         
+        {/* Restaurants */}
         {recommendations.restaurants && recommendations.restaurants.length > 0 && (
           <RecommendationCategory
             title="Restaurants"
@@ -69,6 +88,7 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
           />
         )}
         
+        {/* Beaches */}
         {recommendations.beaches && recommendations.beaches.length > 0 && (
           <RecommendationCategory
             title="Beaches"
@@ -77,6 +97,7 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
           />
         )}
         
+        {/* Mountains */}
         {recommendations.mountains && recommendations.mountains.length > 0 && (
           <RecommendationCategory
             title="Mountains"
@@ -85,19 +106,12 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
           />
         )}
         
+        {/* Resorts */}
         {recommendations.resorts && recommendations.resorts.length > 0 && (
           <RecommendationCategory
             title="Resorts"
             icon="🏖️"
             items={recommendations.resorts}
-          />
-        )}
-        
-        {recommendations.tourist_spots && recommendations.tourist_spots.length > 0 && (
-          <RecommendationCategory
-            title="Tourist Spots"
-            icon="📍"
-            items={recommendations.tourist_spots}
           />
         )}
         
@@ -125,12 +139,40 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
           />
         )}
         
+        {/* Scams and Danger Zones */}
         {recommendations.places_to_avoid && recommendations.places_to_avoid.length > 0 && (
           <RecommendationCategory
-            title="⚠️ Places to Avoid"
+            title="⚠️ Scams and Danger Zones in Bacolod"
             icon="⚠️"
             items={recommendations.places_to_avoid}
           />
+        )}
+        
+        {/* Secret Spot - Last (Profile-based, unique) */}
+        {recommendations.secret_spots && recommendations.secret_spots.length > 0 && (
+          <RecommendationCategory
+            title="🔐 Secret Spot (Just for You)"
+            icon="🔐"
+            items={recommendations.secret_spots}
+            isSecretSpot={true}
+          />
+        )}
+        
+        {/* Show message if no recommendations */}
+        {Object.values(recommendations).every(arr => !Array.isArray(arr) || arr.length === 0) && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+            <p className="text-yellow-800 text-sm">
+              <strong>No recommendations available yet.</strong> This might be because:
+            </p>
+            <ul className="text-yellow-700 text-xs mt-2 list-disc list-inside text-left max-w-md mx-auto">
+              <li>Recommendation engine is still initializing</li>
+              <li>No data available in the recommendation database</li>
+              <li>Personality analysis is still in progress</li>
+            </ul>
+            <p className="text-yellow-800 text-sm mt-2">
+              Try asking MOGI directly about places to visit in Bacolod!
+            </p>
+          </div>
         )}
       </div>
       

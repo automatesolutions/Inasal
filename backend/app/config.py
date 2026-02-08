@@ -94,6 +94,8 @@ class Settings(BaseSettings):
     # Bright Data MCP (optional - only needed for specific features)
     bright_data_web_unlocker_zone: str = ""  # Optional: Web Unlocker zone for proxy/unlocking
     bright_data_browser_auth: str = ""  # Optional: Browser authentication credentials
+    bright_data_serp_zone: str = ""  # Optional: SERP API zone (e.g., "serp_api2") for Google/Bing searches
+    bright_data_serp_api_key: str = ""  # Optional: Separate API key for SERP API
     
     # Bright Data Residential Proxy (for Scrapy)
     bright_data_zone: str = ""  # Zone name (e.g., "webscrape_amzn")
@@ -114,6 +116,12 @@ class Settings(BaseSettings):
         # (Pydantic Settings looks for BRIGHT_DATA_API_KEY by default)
         if not self.bright_data_api_key:
             self.bright_data_api_key = os.getenv('BRIGHT_DATA_API_TOKEN', '')
+        # If bright_data_serp_api_key is empty, check for BRIGHT_DATA_SERP_API_KEY
+        if not self.bright_data_serp_api_key:
+            self.bright_data_serp_api_key = os.getenv('BRIGHT_DATA_SERP_API_KEY', '')
+        # If bright_data_serp_zone is empty, check for BRIGHT_DATA_SERP_ZONE, or default to "serp_api2"
+        if not self.bright_data_serp_zone:
+            self.bright_data_serp_zone = os.getenv('BRIGHT_DATA_SERP_ZONE', 'serp_api2')
         # If openai_api_key is empty, check for OPENAI_API_KEY
         if not self.openai_api_key:
             self.openai_api_key = os.getenv('OPENAI_API_KEY', '')

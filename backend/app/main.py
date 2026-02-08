@@ -91,53 +91,36 @@ app = FastAPI(
 )
 
 
-class OptionsMiddleware(BaseHTTPMiddleware):
-    """Handle OPTIONS requests explicitly for CORS preflight"""
-    async def dispatch(self, request: Request, call_next):
-        if request.method == "OPTIONS":
-            response = Response(status_code=200)
-            origin = request.headers.get("origin", "*")
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
-            response.headers["Access-Control-Allow-Headers"] = request.headers.get("access-control-request-headers", "*")
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Max-Age"] = "3600"
-            return response
-        return await call_next(request)
+# Removed OptionsMiddleware - CORS middleware handles OPTIONS requests
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Log all requests for debugging"""
     async def dispatch(self, request: Request, call_next):
         if request.url.path.startswith("/api/auth/send-otp"):
-            print(f"\n{'='*60}")
-            print(f"📥 INCOMING REQUEST: {request.method} {request.url.path}")
-            print(f"   Headers: {dict(request.headers)}")
-            # Don't read body here - it will be consumed. Just log the path.
-            print(f"{'='*60}\n")
+            logger.info(f"INCOMING REQUEST: {request.method} {request.url.path}")
         return await call_next(request)
 
 
 # CORS middleware - add first (runs last, handles CORS)
 # Get allowed origins from environment variable, default to localhost for development
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,*")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+
+logger.info(f"CORS Allowed Origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+    allow_origins=["*"],  # Allow all origins in dev
+    allow_credentials=False,  # Must be False when using allow_origins=["*"]
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600,
 )
 
-# Add logging middleware first (runs last, logs after everything)
+# Add logging middleware
 app.add_middleware(LoggingMiddleware)
-
-# Add OPTIONS middleware LAST (runs FIRST, intercepts OPTIONS before CORS)
-app.add_middleware(OptionsMiddleware)
 
 
 # Global exception handlers
@@ -148,7 +131,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     
     logger.error(f"VALIDATION ERROR in {request.method} {request.url.path}:")
     logger.error(f"   Number of errors: {len(errors)}")
-    logger.error(f"   Errors: {json.dumps(errors, indent=2)}")
+    # Convert errors to JSON-serializable format
+    try:
+        logger.error(f"   Errors: {json.dumps([str(e) for e in errors], indent=2)}")
+    except Exception:
+        logger.error(f"   Errors: (unable to serialize)")
     try:
         body = await request.body()
         logger.error(f"   Request Body: {body.decode('utf-8') if body else 'Empty'}")
@@ -248,12 +235,12 @@ else:
             detail="Recommendation service is not available. LangChain dependencies are not installed. Please install LangChain dependencies to enable AI features.",
         )
     
-    @app.get("/api/recommendations/hidden-gems")
-    async def hidden_gems_fallback(
-        limit: int = Query(default=5, ge=1, le=10),
+    @app.get("/api/recommendations/secret-spots")
+    async def secret_spots_fallback(
+        limit: int = Query(default=2, ge=1, le=5),
         current_user: dict = Depends(get_current_user),
     ):
-        """Fallback endpoint when LangChain is not available"""
+        """Get secret spots - unique profile-based recommendations"""
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Recommendation service is not available. LangChain dependencies are not installed. Please install LangChain dependencies to enable AI features.",

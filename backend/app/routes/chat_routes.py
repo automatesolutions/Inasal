@@ -117,16 +117,23 @@ async def get_welcome_message(
         profile = await profile_service.get_profile(user_id)
         if profile:
             personality_dict = profile.personality.model_dump()
-            # Check if personality has meaningful traits (any > 0.5)
+            
+            # Check if all traits are at default (0.5) - this means analysis hasn't completed
+            all_default = all(v == 0.5 for v in personality_dict.values())
+            
+            # Check if personality has meaningful traits (any > 0.5, excluding defaults)
             has_traits = any(v > 0.5 for v in personality_dict.values())
             
-            if has_traits:
-                logger.info(f"✅ Got personality with traits on attempt {attempt}: {personality_dict}")
+            if has_traits and not all_default:
+                logger.info(f"✅ Got personality with meaningful traits on attempt {attempt}: {personality_dict}")
                 personality = profile.personality
                 break
             else:
                 if attempt == 0 or attempt % 10 == 0:  # Log every 10 attempts
-                    logger.info(f"⏳ Waiting for personality analysis... (attempt {attempt+1}/60, traits: {personality_dict})")
+                    if all_default:
+                        logger.info(f"⏳ Waiting for personality analysis... (attempt {attempt+1}/60, all traits at default 0.5)")
+                    else:
+                        logger.info(f"⏳ Waiting for personality analysis... (attempt {attempt+1}/60, traits: {personality_dict})")
                 await asyncio.sleep(0.5)
         else:
             logger.warning(f"⚠️ Profile not found on attempt {attempt}")
@@ -134,19 +141,43 @@ async def get_welcome_message(
     
     # If no personality found after waiting, get whatever is available
     if personality is None:
-        logger.warning(f"⚠️ No personality found after 30s wait for {user_id}")
+        logger.warning(f"⚠️ No meaningful personality found after 30s wait for {user_id}")
         profile = await profile_service.get_profile(user_id)
         if profile:
             personality = profile.personality
+            personality_dict = personality.model_dump()
+            # Check if it's still all defaults
+            if all(v == 0.5 for v in personality_dict.values()):
+                logger.warning(f"⚠️ Personality is still all defaults (0.5) - analysis may not have completed")
         else:
             personality = PersonalityTraits()  # Use defaults
     
-    # Get user name
+    # Get user name and ensure we have the latest profile data
+    # Refresh profile one more time to ensure we have the latest personality after analysis
     profile = await profile_service.get_profile(user_id)
     user_name = profile.name if profile and profile.name else "friend"
     
+    # Use personality from the latest profile fetch to ensure we have fresh data
+    if profile and profile.personality:
+        latest_personality_dict = profile.personality.model_dump()
+        # Check if this is better than what we have
+        latest_has_traits = any(v > 0.5 for v in latest_personality_dict.values())
+        current_has_traits = any(v > 0.5 for v in personality.model_dump().values())
+        
+        if latest_has_traits or (not current_has_traits and not all(v == 0.5 for v in latest_personality_dict.values())):
+            personality = profile.personality
+            logger.warning(f"✅ Using updated personality from latest profile fetch: {latest_personality_dict}")
+        else:
+            logger.warning(f"⚠️ Latest profile still has defaults, using current personality")
+    
     personality_dict = personality.model_dump()
-    logger.info(f"📋 Final personality for {user_id}: {personality_dict}")
+    logger.warning(f"📋 Final personality for {user_id}: {personality_dict}")
+    
+    # Log if all traits are default (0.5) - indicates analysis may not be complete
+    if all(v == 0.5 for v in personality_dict.values()):
+        logger.warning(f"⚠️ WARNING: All personality traits are at default (0.5) for {user_id}")
+        logger.warning(f"   This suggests personality analysis may not have completed yet")
+        logger.warning(f"   Check if personality_pipeline.analyze_personality_from_social_media completed successfully")
     
     # Generate welcome message - the LLM will intelligently use personality if available
     welcome_service = WelcomeMessageService()
@@ -181,7 +212,7 @@ async def get_welcome_message(
             "places_to_avoid": [],
             "businesses": [],
             "events": [],
-            "hidden_gems": []
+            "secret_spots": []
         }
     
     return RichMessage(

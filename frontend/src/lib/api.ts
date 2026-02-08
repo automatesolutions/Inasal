@@ -28,7 +28,7 @@ async function apiRequest<T>(
 
   // Add auth token if available
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  if (token) {
+  if (token && token.trim() && token !== 'null' && token !== 'undefined') {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
 
@@ -52,12 +52,53 @@ async function apiRequest<T>(
     try {
       const text = await response.text();
       console.error(`❌ Error response body:`, text);
-      errorData = JSON.parse(text);
+      if (text && text.trim()) {
+        errorData = JSON.parse(text);
+      }
     } catch (e) {
       console.error(`❌ Could not parse error response:`, e);
     }
+    
+    // If it's an authentication error, clear invalid token
+    if (response.status === 401 || response.status === 403) {
+      if (typeof window !== 'undefined') {
+        console.warn("Authentication failed, clearing token");
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_email');
+        localStorage.removeItem('user_phone');
+      }
+    }
+    
+    // Extract detailed error message
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    
+    // Handle FastAPI validation errors (422)
+    if (response.status === 422 && Array.isArray(errorData.detail)) {
+      // Extract field-specific validation errors
+      const validationErrors = errorData.detail.map((err: any) => {
+        const field = err.loc?.join('.') || 'field';
+        const msg = err.msg || 'Invalid value';
+        return `${field}: ${msg}`;
+      });
+      errorMessage = validationErrors.join('. ') || errorData.detail;
+    } else if (errorData.detail) {
+      // Use detail if it's a string or single message
+      if (typeof errorData.detail === 'string') {
+        errorMessage = errorData.detail;
+      } else if (Array.isArray(errorData.detail) && errorData.detail.length > 0) {
+        // If it's an array, extract the first error message
+        const firstError = errorData.detail[0];
+        if (typeof firstError === 'string') {
+          errorMessage = firstError;
+        } else if (firstError.msg) {
+          errorMessage = firstError.msg;
+        }
+      }
+    }
+    
     const error: ApiError = {
-      detail: errorData.detail || `HTTP error! status: ${response.status}`,
+      detail: errorMessage,
       status: response.status,
     };
     console.error(`❌ API Error:`, error);
@@ -174,7 +215,9 @@ export const authApi = {
  */
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem('auth_token');
+  const token = localStorage.getItem('auth_token');
+  // Check if token exists and is not empty
+  return !!(token && token.trim() && token !== 'null' && token !== 'undefined');
 }
 
 /**
@@ -265,7 +308,7 @@ export interface WelcomeMessageResponse {
     places_to_avoid: any[];
     businesses: any[];
     events: any[];
-    hidden_gems: any[];
+    secret_spots: any[];
   };
 }
 

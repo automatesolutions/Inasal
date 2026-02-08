@@ -3,1558 +3,1404 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bacolod Tourist - Complete System Architecture & Flow</title>
+    <title>Bacolod Tourist - System Architecture</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            padding: 20px;
             line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
-
+        
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
-            border-radius: 15px;
+            border-radius: 10px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
         }
-
-        .header {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 40px;
+            padding: 40px 20px;
             text-align: center;
         }
-
-        .header h1 {
-            font-size: 3em;
+        
+        header h1 {
+            font-size: 2.5em;
             margin-bottom: 10px;
         }
-
-        .header p {
-            font-size: 1.3em;
+        
+        header p {
+            font-size: 1.1em;
             opacity: 0.9;
         }
-
-        .section {
+        
+        .content {
             padding: 40px;
-            border-bottom: 2px solid #e0e0e0;
         }
-
-        .section:last-child {
-            border-bottom: none;
+        
+        h2 {
+            color: #667eea;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
         }
-
-        .section-title {
-            font-size: 2em;
-            color: #f59e0b;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 4px solid #f59e0b;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .flow-container {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-            margin: 25px 0;
-        }
-
-        .flow-box {
-            background: #f8f9fa;
-            border-left: 6px solid #f59e0b;
-            padding: 25px;
-            border-radius: 10px;
-            transition: transform 0.3s, box-shadow 0.3s;
-            position: relative;
-        }
-
-        .flow-box:hover {
-            transform: translateX(10px);
-            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
-        }
-
-        .flow-box.auth-path {
-            border-left-color: #10b981;
-        }
-
-        .flow-box.chat-path {
-            border-left-color: #3b82f6;
-        }
-
-        .flow-box.recommendation-path {
-            border-left-color: #8b5cf6;
-        }
-
-        .flow-box h3 {
-            color: #333;
+        
+        h3 {
+            color: #764ba2;
+            margin-top: 25px;
             margin-bottom: 15px;
-            font-size: 1.4em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
-
-        .flow-box .step-number {
-            background: #f59e0b;
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .diagram {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .flowchart-svg {
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .flowchart-box { fill: #667eea; }
+        .flowchart-box-alt { fill: #764ba2; }
+        .flowchart-box-user { fill: #28a745; }
+        .flowchart-box-backend { fill: #667eea; }
+        .flowchart-box-db { fill: #6c757d; }
+        .flowchart-box-text { fill: white; font-family: 'Segoe UI', sans-serif; font-size: 13px; font-weight: 600; text-anchor: middle; }
+        .flowchart-box-text-small { fill: white; font-family: 'Segoe UI', sans-serif; font-size: 11px; text-anchor: middle; }
+        .flowchart-arrow { stroke: #333; stroke-width: 2; fill: none; }
+        .flowchart-label { fill: #333; font-family: 'Segoe UI', sans-serif; font-size: 11px; }
+        
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline-item {
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        
+        .timeline-item.success {
+            border-left-color: #28a745;
+            background: #f0f8f5;
+        }
+        
+        .timeline-item.warning {
+            border-left-color: #ffc107;
+            background: #fffaf0;
+        }
+        
+        .timeline-item.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        .timeline-time {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table th {
+            background: #667eea;
             color: white;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .feature-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .feature-card h4 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .feature-card p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .success-text {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .error-text {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .warning-text {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .layer {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .layer-title {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .component-list {
+            list-style: none;
+            padding-left: 20px;
+        }
+        
+        .component-list li:before {
+            content: "▸ ";
+            color: #667eea;
             font-weight: bold;
             margin-right: 10px;
         }
-
-        .flow-box .file-path {
-            background: #2d2d2d;
-            color: #4ade80;
-            padding: 12px 15px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.95em;
-            margin: 15px 0;
-            border-left: 4px solid #4ade80;
-            word-break: break-all;
-        }
-
-        .flow-box .code {
-            background: #1e1e1e;
-            color: #d4d4d4;
+        
+        footer {
+            background: #f8f9fa;
             padding: 20px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            margin: 15px 0;
-            overflow-x: auto;
-            border-left: 4px solid #007acc;
-        }
-
-        .flow-box .code .comment {
-            color: #6a9955;
-        }
-
-        .flow-box .code .keyword {
-            color: #569cd6;
-        }
-
-        .flow-box .code .string {
-            color: #ce9178;
-        }
-
-        .flow-box .explanation {
-            background: #e7f3ff;
-            border-left: 4px solid #007bff;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 15px 0;
-            font-size: 0.95em;
-        }
-
-        .flow-box ul {
-            margin: 15px 0;
-            padding-left: 25px;
-        }
-
-        .flow-box ul li {
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-
-        .arrow {
             text-align: center;
-            font-size: 2.5em;
-            color: #f59e0b;
-            margin: 15px 0;
-            font-weight: bold;
-        }
-
-        .endpoint-box {
-            background: #fff3cd;
-            border: 3px solid #ffc107;
-            border-radius: 10px;
-            padding: 25px;
-            margin: 20px 0;
-        }
-
-        .endpoint-box h4 {
-            color: #856404;
-            margin-bottom: 20px;
-            font-size: 1.3em;
-        }
-
-        .endpoint-box .method {
-            display: inline-block;
-            background: #28a745;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-            margin-right: 15px;
-            font-size: 1.1em;
-        }
-
-        .endpoint-box .method.get {
-            background: #007bff;
-        }
-
-        .endpoint-box .method.post {
-            background: #28a745;
-        }
-
-        .endpoint-box .url {
-            font-family: 'Courier New', monospace;
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
-            margin: 15px 0;
-            font-size: 1.05em;
-            border: 1px solid #dee2e6;
-        }
-
-        .file-list {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 25px;
-            margin: 20px 0;
-        }
-
-        .file-list h3 {
-            color: #f59e0b;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .file-list ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .file-list li {
-            padding: 12px;
-            margin: 8px 0;
-            background: white;
-            border-left: 5px solid #f59e0b;
-            border-radius: 6px;
-            transition: transform 0.2s;
-        }
-
-        .file-list li:hover {
-            transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .file-list li strong {
-            color: #f59e0b;
-            font-size: 1.05em;
-        }
-
-        .file-list li .file-desc {
+            border-top: 1px solid #ddd;
             color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
         }
-
-        .legend {
+        
+        .nav-links {
             display: flex;
-            gap: 25px;
-            flex-wrap: wrap;
-            margin: 25px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 15px;
-            background: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .legend-color {
-            width: 25px;
-            height: 25px;
-            border-radius: 4px;
-        }
-
-        .legend-color.auth {
-            background: #10b981;
-        }
-
-        .legend-color.chat {
-            background: #3b82f6;
-        }
-
-        .legend-color.recommendation {
-            background: #8b5cf6;
-        }
-
-        .highlight-box {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 3px solid #f59e0b;
-            border-radius: 10px;
-            padding: 25px;
-            margin: 25px 0;
-        }
-
-        .highlight-box h3 {
-            color: #92400e;
-            margin-bottom: 15px;
-            font-size: 1.4em;
-        }
-
-        .info-box {
-            background: #e0f2fe;
-            border-left: 5px solid #0284c7;
-            padding: 20px;
-            border-radius: 6px;
+            gap: 20px;
             margin: 20px 0;
+            flex-wrap: wrap;
         }
-
-        .info-box strong {
-            color: #0284c7;
+        
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: #667eea;
+            color: white;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🎭 Bacolod Tourist - MOGI Chatbot</h1>
-            <p>Complete System Architecture & How It Works</p>
-            <p style="font-size: 1em; margin-top: 10px; opacity: 0.8;">Understanding Every File, Flow, and Feature</p>
-        </div>
-
-        <!-- Overview Section -->
-        <div class="section">
-            <h2 class="section-title">📋 Overview: How the Web App Works</h2>
-            <div class="highlight-box">
-                <h3>🎯 Main User Journey</h3>
-                <ol style="line-height: 2; padding-left: 25px;">
-                    <li><strong>User visits</strong> → <code>frontend/src/app/page.tsx</code> (Landing page)</li>
-                    <li><strong>User clicks login</strong> → <code>frontend/src/app/login/page.tsx</code> (Login page)</li>
-                    <li><strong>User enters phone/email</strong> → <code>frontend/src/components/PhoneInput.tsx</code> (Phone input component)</li>
-                    <li><strong>OTP sent & verified</strong> → <code>backend/app/routes/auth_routes.py</code> (Authentication API)</li>
-                    <li><strong>Background personality analysis starts</strong> → <code>backend/app/personality_pipeline.py</code> (Async job)</li>
-                    <li><strong>User redirected to chat</strong> → <code>frontend/src/app/chat/page.tsx</code> (Chat page)</li>
-                    <li><strong>Welcome message loads</strong> → <code>frontend/src/components/MOGIChatbot.tsx</code> (Main chatbot component)</li>
-                    <li><strong>MOGI greets user</strong> → <code>backend/app/routes/chat_routes.py</code> → <code>/api/chat/welcome</code></li>
-                    <li><strong>User chats with MOGI</strong> → <code>backend/app/chat_agent.py</code> (LangChain agent)</li>
-                </ol>
-            </div>
-        </div>
-
-        <!-- Authentication Flow Section -->
-        <div class="section">
-            <h2 class="section-title">🔐 Step 1: Authentication Flow (Phone/Email OTP)</h2>
+        <header>
+            <h1>🏗️ Bacolod Tourist - System Architecture</h1>
+            <p>How It Works • Activation Flow • Code Guide</p>
+        </header>
+        
+        <div class="content">
             
-            <div class="info-box">
-                <strong>📁 Key Files:</strong>
-                <ul style="margin-top: 10px;">
-                    <li><code>frontend/src/app/login/page.tsx</code> - Login page UI</li>
-                    <li><code>frontend/src/components/PhoneInput.tsx</code> - Philippine phone input component</li>
-                    <li><code>frontend/src/lib/api.ts</code> - API client (sendOTPPhone, verifyOTPPhone)</li>
-                    <li><code>backend/app/routes/auth_routes.py</code> - Authentication endpoints</li>
-                </ul>
+            <div class="section" style="background:#f0f4ff;padding:15px;border-radius:8px;margin-bottom:30px;">
+                <strong>Quick navigation:</strong>
+                <a href="#activate">How to Activate</a> •
+                <a href="#flow">User Flow</a> •
+                <a href="#walkthrough">Detailed Walkthrough</a> •
+                <a href="#scrape-llm">Scrape &amp; LLM</a> •
+                <a href="#code">Code Guide</a> •
+                <a href="#files">Key Files</a> •
+                <a href="#bigquery">BigQuery Solution</a>
             </div>
+            
+            <!-- How to Activate -->
+            <div class="section" id="activate">
+                <h2>🚀 How to Activate the System</h2>
+                <p>Two commands start everything. The backend runs startup logic automatically when FastAPI loads.</p>
+                
+                <h3>Step 1: Start Backend</h3>
+                <div class="code-block">cd backend
+poetry run uvicorn app.main:app --reload --port 8000</div>
+                <p><strong>What happens when the backend starts:</strong></p>
+                <div class="code-block"># backend/app/main.py - lifespan() runs on startup
 
-            <div class="flow-container">
-                <div class="flow-box auth-path">
-                    <h3><span class="step-number">1</span>User Opens Login Page</h3>
-                    <div class="file-path">frontend/src/app/login/page.tsx</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> User navigates to <code>/login</code> route. The login page component renders with two tabs: "Phone" and "Email".
-                    </div>
-                    <div class="code">
-<span class="comment">// Login page state management</span>
-const [usePhone, setUsePhone] = useState(true);
-const [phoneNumber, setPhoneNumber] = useState("");
-const [firstName, setFirstName] = useState("");
-const [lastName, setLastName] = useState("");
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box auth-path">
-                    <h3><span class="step-number">2</span>User Enters Phone Number</h3>
-                    <div class="file-path">frontend/src/components/PhoneInput.tsx</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> PhoneInput component formats the input as user types. Supports formats: <code>+63 9XX XXX XXXX</code> or <code>09XX XXX XXXX</code>
-                    </div>
-                    <div class="code">
-<span class="comment">// Phone validation regex</span>
-PH_PHONE_REGEX = <span class="string">r'^(\+63|0)?9\d{9}$'</span>
-
-<span class="comment">// Normalizes to +63 format</span>
-normalize_phone_number(phone) → <span class="string">"+639123456789"</span>
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box auth-path">
-                    <h3><span class="step-number">3</span>Frontend Sends OTP Request</h3>
-                    <div class="file-path">frontend/src/lib/api.ts → authApi.sendOTPPhone()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Frontend calls API client which sends POST request to backend
-                    </div>
-                    <div class="code">
-<span class="comment">// API call from frontend</span>
-await authApi.sendOTPPhone(
-  phoneNumber,    <span class="comment">// "+639123456789"</span>
-  firstName,      <span class="comment">// "Juan"</span>
-  lastName        <span class="comment">// "Dela Cruz"</span>
-)
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box auth-path">
-                    <h3><span class="step-number">4</span>Backend Receives OTP Request</h3>
-                    <div class="file-path">backend/app/routes/auth_routes.py → send_otp_phone()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Backend validates phone number, generates OTP (or uses dummy "000000" in dev mode), stores in Redis with expiration
-                    </div>
-                    <div class="code">
-<span class="comment">// OTP storage in Redis</span>
-otp_key = <span class="string">f"otp:phone:{normalized_phone}"</span>
-meta_key = <span class="string">f"otp:meta:phone:{normalized_phone}"</span>
-
-<span class="comment">// Store OTP and metadata</span>
-await redis_client.set(otp_key, <span class="string">"000000"</span>, expire=600)
-await redis_client.set(meta_key, {
-  <span class="string">"first_name"</span>: <span class="string">"Juan"</span>,
-  <span class="string">"last_name"</span>: <span class="string">"Dela Cruz"</span>,
-  <span class="string">"phone_number"</span>: <span class="string">"+639123456789"</span>
-}, expire=600)
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box auth-path">
-                    <h3><span class="step-number">5</span>User Enters OTP & Verifies</h3>
-                    <div class="file-path">backend/app/routes/auth_routes.py → verify_otp_phone()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Backend verifies OTP from Redis, creates user profile, syncs to Strapi, triggers background personality analysis, returns JWT token
-                    </div>
-                    <div class="code">
-<span class="comment">// OTP verification</span>
-stored_otp = await redis_client.get(<span class="string">f"otp:phone:{normalized_phone}"</span>)
-<span class="keyword">if</span> request.otp == stored_otp:
-    <span class="comment">// Create user profile</span>
-    user_profile = await profile_service.create_profile(...)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await bigquery_client.connect()      # Connect to BigQuery
+    await storage_client.connect()       # Connect to Google Cloud Storage
+    await redis_client.connect()         # Connect to Redis (OTP storage)
     
-    <span class="comment">// Trigger background personality analysis</span>
-    asyncio.create_task(
-        analyze_personality_from_social_media(
-            user_id, first_name, last_name, phone_number
-        )
-    )
+    if HAS_LANGCHAIN:
+        await recommendation_engine.initialize()  # Load FAISS + LLM
     
-    <span class="comment">// Return JWT token</span>
-    <span class="keyword">return</span> {
-        <span class="string">"access_token"</span>: jwt_token,
-        <span class="string">"user_id"</span>: user_id,
-        <span class="string">"personality_analysis_status"</span>: <span class="string">"in_progress"</span>
-    }
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box auth-path">
-                    <h3><span class="step-number">6</span>Frontend Redirects to Chat</h3>
-                    <div class="file-path">frontend/src/app/login/page.tsx → router.push("/chat")</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> After successful OTP verification, frontend stores JWT token in localStorage and redirects to <code>/chat</code> route
-                    </div>
-                    <div class="code">
-<span class="comment">// Store token and redirect</span>
-localStorage.setItem(<span class="string">'auth_token'</span>, response.access_token)
-localStorage.setItem(<span class="string">'user_id'</span>, response.user_id)
-router.push(<span class="string">"/chat"</span>)
-                    </div>
-                </div>
+    background_retry_task = start_background_retry_task()  # BigQuery retry loop
+    yield
+    # ... cleanup on shutdown</div>
+                
+                <h3>Step 2: Start Frontend</h3>
+                <div class="code-block">cd frontend
+pnpm dev</div>
+                <p>Frontend runs at <code>http://localhost:3000</code>. User goes to <code>/login</code> to begin.</p>
             </div>
-
-            <div class="endpoint-box">
-                <h4>📡 Authentication Endpoints</h4>
-                <div>
-                    <span class="method post">POST</span>
-                    <span class="url">/api/auth/send-otp-phone</span>
-                </div>
-                <div class="code" style="margin-top: 15px;">
-<span class="comment">Request Body:</span>
-{
-  <span class="string">"phone_number"</span>: <span class="string">"+639123456789"</span>,
-  <span class="string">"first_name"</span>: <span class="string">"Juan"</span>,
-  <span class="string">"last_name"</span>: <span class="string">"Dela Cruz"</span>
-}
-
-<span class="comment">Response:</span>
-{
-  <span class="string">"message"</span>: <span class="string">"OTP sent successfully"</span>,
-  <span class="string">"dummy_otp"</span>: <span class="string">"000000"</span>
-}
-                </div>
-                <div style="margin-top: 20px;">
-                    <span class="method post">POST</span>
-                    <span class="url">/api/auth/verify-otp-phone</span>
-                </div>
-                <div class="code" style="margin-top: 15px;">
-<span class="comment">Request Body:</span>
-{
-  <span class="string">"phone_number"</span>: <span class="string">"+639123456789"</span>,
-  <span class="string">"otp"</span>: <span class="string">"000000"</span>,
-  <span class="string">"first_name"</span>: <span class="string">"Juan"</span>,
-  <span class="string">"last_name"</span>: <span class="string">"Dela Cruz"</span>
-}
-
-<span class="comment">Response:</span>
-{
-  <span class="string">"access_token"</span>: <span class="string">"eyJhbGc..."</span>,
-  <span class="string">"user_id"</span>: <span class="string">"uuid-here"</span>,
-  <span class="string">"personality_analysis_status"</span>: <span class="string">"in_progress"</span>
-}
-                </div>
-            </div>
-        </div>
-
-        <!-- Personality Analysis Flow -->
-        <div class="section">
-            <h2 class="section-title">🧠 Step 2: Background Personality Analysis Pipeline</h2>
             
-            <div class="info-box">
-                <strong>📁 Key Files:</strong>
-                <ul style="margin-top: 10px;">
-                    <li><code>backend/app/personality_pipeline.py</code> - Main pipeline orchestrator</li>
-                    <li><code>backend/app/social_scraper.py</code> - Bright Data + Scrapy social media scraping</li>
-                    <li><code>backend/app/scrapers/social_media_spider.py</code> - Scrapy spiders (Facebook/Instagram)</li>
-                    <li><code>backend/app/scrapers/proxy_middleware.py</code> - Bright Data Residential Proxy middleware</li>
-                    <li><code>backend/app/personality_analyzer.py</code> - LLM-based personality analysis (OpenAI)</li>
-                    <li><code>backend/app/user_profile.py</code> - User profile service (MongoDB)</li>
-                </ul>
-            </div>
-
-            <div class="flow-container">
-                <div class="flow-box recommendation-path">
-                    <h3><span class="step-number">1</span>Pipeline Triggered (Async Background Job)</h3>
-                    <div class="file-path">backend/app/routes/auth_routes.py → verify_otp_phone()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> After OTP verification, an async task is created that runs in the background without blocking the login response
-                    </div>
-                    <div class="code">
-<span class="comment">// Triggered after successful OTP verification</span>
-asyncio.create_task(
-    analyze_personality_from_social_media(
-        user_id=<span class="string">"uuid-here"</span>,
-        first_name=<span class="string">"Juan"</span>,
-        last_name=<span class="string">"Dela Cruz"</span>,
-        phone_number=<span class="string">"+639123456789"</span>
-    )
-)
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box recommendation-path">
-                    <h3><span class="step-number">2</span>Search Social Media Profiles</h3>
-                    <div class="file-path">backend/app/social_scraper.py → search_social_profiles()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Uses Bright Data Google Search API to find Facebook and Instagram profiles matching the user's name
-                    </div>
-                    <div class="code">
-<span class="comment">// Search queries</span>
-facebook_query = <span class="string">'"Juan Dela Cruz" site:facebook.com'</span>
-instagram_query = <span class="string">'"Juan Dela Cruz" site:instagram.com'</span>
-
-<span class="comment">// Bright Data API calls</span>
-facebook_results = await bright_data_client.search_public(
-    source=<span class="string">"google"</span>,
-    query=facebook_query,
-    limit=<span class="keyword">5</span>
-)
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box recommendation-path">
-                    <h3><span class="step-number">3</span>Scrape Profile Data with Scrapy</h3>
-                    <div class="file-path">backend/app/scrapers/social_media_spider.py → FacebookProfileSpider / InstagramProfileSpider</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Scrapy spiders run with Bright Data Residential Proxy to extract bio, posts, interests, location from the found social media profile
-                    </div>
-                    <div class="code">
-<span class="comment">// Scrapy spider runs via Bright Data Residential Proxy</span>
-<span class="comment">// Proxy URL: http://username:password@brd.superproxy.io:33335</span>
-
-<span class="comment">// Scraped data structure</span>
-{
-  <span class="string">"provider"</span>: <span class="string">"facebook"</span>,
-  <span class="string">"profile_url"</span>: <span class="string">"https://facebook.com/juan.delacruz"</span>,
-  <span class="string">"bio"</span>: <span class="string">"Travel enthusiast..."</span>,
-  <span class="string">"posts_content"</span>: [<span class="string">"Post 1"</span>, <span class="string">"Post 2"</span>],
-  <span class="string">"interests"</span>: [<span class="string">"travel"</span>, <span class="string">"food"</span>],
-  <span class="string">"location"</span>: <span class="string">"Bacolod City"</span>
-}
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box recommendation-path">
-                    <h3><span class="step-number">4</span>Summarize with LLM</h3>
-                    <div class="file-path">backend/app/personality_analyzer.py → summarize_social_data()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Uses OpenAI GPT to summarize the scraped social media data into a concise personality profile
-                    </div>
-                    <div class="code">
-<span class="comment">// LLM prompt</span>
-summary_prompt = <span class="string">"""
-Summarize the following social media profile data into a concise 
-personality profile. Focus on interests, activities, preferences...
-"""</span>
-
-<span class="comment">// Call OpenAI GPT (via LangChain)</span>
-response = await llm.ainvoke(summary_prompt)
-summary = response.content
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box recommendation-path">
-                    <h3><span class="step-number">5</span>Analyze Personality Traits</h3>
-                    <div class="file-path">backend/app/personality_analyzer.py → analyze_personality_from_summary()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> LLM analyzes the summary and assigns scores (0.0-1.0) for each personality trait
-                    </div>
-                    <div class="code">
-<span class="comment">// Personality traits analyzed</span>
-{
-  <span class="string">"adventurous"</span>: <span class="keyword">0.85</span>,    <span class="comment">// High</span>
-  <span class="string">"cultural"</span>: <span class="keyword">0.60</span>,      <span class="comment">// Medium</span>
-  <span class="string">"foodie"</span>: <span class="keyword">0.92</span>,        <span class="comment">// Very High</span>
-  <span class="string">"nature_lover"</span>: <span class="keyword">0.75</span>,  <span class="comment">// High</span>
-  <span class="string">"history_buff"</span>: <span class="keyword">0.40</span>,   <span class="comment">// Low</span>
-  <span class="string">"social"</span>: <span class="keyword">0.80</span>         <span class="comment">// High</span>
-}
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box recommendation-path">
-                    <h3><span class="step-number">6</span>Store in Google BigQuery</h3>
-                    <div class="file-path">backend/app/personality_pipeline.py → Store results</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Personality traits and social media data are stored in Google BigQuery user_profiles table
-                    </div>
-                    <div class="code">
-<span class="comment">// Update BigQuery user profile</span>
-await profile_service.update_personality(
-    user_id,
-    personality_traits
-)
-
-<span class="comment">// Store social media data</span>
-await profile_service.update_social_media_data(
-    user_id,
-    {
-        <span class="string">"summary"</span>: summary,
-        <span class="string">"scraped_data"</span>: scraped_data,
-        <span class="string">"analyzed_at"</span>: datetime.utcnow().isoformat(),
-        <span class="string">"analysis_source"</span>: <span class="string">"social_media_scraping"</span>
-    }
-)
-
-<span class="comment">// BigQuery automatically stores:</span>
-<span class="comment">// - Personality traits (adventurous, cultural, foodie, etc.)</span>
-<span class="comment">// - Social media data (JSON)</span>
-<span class="comment">// - Timestamps (created_at, updated_at)</span>
-                    </div>
+            <!-- Complete User Flow -->
+            <div class="section" id="flow">
+                <h2>📱 Complete User Flow (Step by Step)</h2>
+                <p>This is the exact path a user takes and what code runs at each step.</p>
+                
+                <table>
+                    <tr>
+                        <th>Step</th>
+                        <th>User Action</th>
+                        <th>API / Code</th>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>User opens <code>/login</code>, enters phone + name, clicks "Send OTP"</td>
+                        <td><code>POST /api/auth/send-otp-phone</code> → Redis stores OTP (key: <code>otp:phone:+639123456789</code>)</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>User enters OTP <code>000000</code>, clicks "Verify & Login"</td>
+                        <td><code>POST /api/auth/verify-otp-phone</code> → Creates profile, starts personality analysis in background</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>User is redirected to <code>/chat</code></td>
+                        <td>Frontend checks <code>isAuthenticated()</code> (JWT in localStorage), renders <code>MOGIChatbot</code></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>Chat page loads</td>
+                        <td><code>MOGIChatbot</code> calls <code>chatApi.getWelcomeMessage()</code> → <code>GET /api/chat/welcome</code></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Welcome appears</td>
+                        <td>Backend: get profile (InstantDB/BigQuery + cache) → generate welcome text → get all recommendations → return</td>
+                    </tr>
+                </table>
+                
+                <h3>Flow Chart</h3>
+                <div style="background:#fff;border-radius:8px;padding:20px;overflow-x:auto;">
+                <svg class="flowchart-svg" viewBox="0 0 880 340" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Main flow (linear left-to-right) -->
+                    <rect x="20" y="40" width="840" height="260" rx="8" fill="#f0f4ff" stroke="#667eea" stroke-width="1"/>
+                    <text x="440" y="70" text-anchor="middle" font-weight="bold" fill="#667eea" font-size="14">User Flow (left → right)</text>
+                    <text x="440" y="88" text-anchor="middle" fill="#666" font-size="11">Green = User action • Blue = API • Gray = Storage • Purple = Background</text>
+                    
+                    <rect x="40" y="110" width="90" height="50" rx="4" fill="#28a745"/>
+                    <text x="85" y="135" class="flowchart-box-text" font-size="11">Login</text>
+                    <text x="85" y="148" class="flowchart-box-text-small" font-size="9">/login</text>
+                    
+                    <rect x="155" y="110" width="90" height="50" rx="4" fill="#667eea"/>
+                    <text x="200" y="135" class="flowchart-box-text" font-size="11">Send OTP</text>
+                    <text x="200" y="148" class="flowchart-box-text-small" font-size="9">POST send-otp-phone</text>
+                    
+                    <rect x="270" y="110" width="90" height="50" rx="4" fill="#6c757d"/>
+                    <text x="315" y="142" class="flowchart-box-text" font-size="11">Redis</text>
+                    <text x="315" y="155" class="flowchart-box-text-small" font-size="9">Store OTP</text>
+                    
+                    <rect x="385" y="110" width="90" height="50" rx="4" fill="#667eea"/>
+                    <text x="430" y="135" class="flowchart-box-text" font-size="11">Verify OTP</text>
+                    <text x="430" y="148" class="flowchart-box-text-small" font-size="9">POST verify-otp-phone</text>
+                    
+                    <rect x="500" y="110" width="90" height="50" rx="4" fill="#764ba2"/>
+                    <text x="545" y="135" class="flowchart-box-text" font-size="11">Profile</text>
+                    <text x="545" y="148" class="flowchart-box-text-small" font-size="9">+ personality task</text>
+                    
+                    <rect x="615" y="110" width="90" height="50" rx="4" fill="#28a745"/>
+                    <text x="660" y="135" class="flowchart-box-text" font-size="11">Chat</text>
+                    <text x="660" y="148" class="flowchart-box-text-small" font-size="9">/chat</text>
+                    
+                    <rect x="730" y="110" width="90" height="50" rx="4" fill="#667eea"/>
+                    <text x="775" y="142" class="flowchart-box-text" font-size="11">Welcome</text>
+                    <text x="775" y="155" class="flowchart-box-text-small" font-size="9">GET /chat/welcome</text>
+                    
+                    <!-- Arrows -->
+                    <path d="M 130 135 L 150 135" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#arrow2)"/>
+                    <path d="M 245 135 L 265 135" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#arrow2)"/>
+                    <path d="M 360 135 L 380 135" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#arrow2)"/>
+                    <path d="M 475 135 L 495 135" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#arrow2)"/>
+                    <path d="M 590 135 L 610 135" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#arrow2)"/>
+                    <path d="M 705 135 L 725 135" stroke="#333" stroke-width="1.5" fill="none" marker-end="url(#arrow2)"/>
+                    
+                    <marker id="arrow2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                        <path d="M0,0 L0,8 L8,4 z" fill="#333"/>
+                    </marker>
+                    
+                    <!-- Background task (dashed = async, runs in parallel) -->
+                    <path d="M 545 160 L 545 200 L 400 200 L 400 245" stroke="#764ba2" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+                    <rect x="280" y="220" width="240" height="55" rx="4" fill="#764ba2"/>
+                    <text x="400" y="245" class="flowchart-box-text" font-size="11">personality_pipeline (background, async)</text>
+                    <text x="400" y="260" class="flowchart-box-text-small" font-size="9">SERP search → LLM summary → personality traits → cache + InstantDB</text>
+                </svg>
                 </div>
             </div>
-        </div>
-
-        <!-- Welcome Message Flow -->
-        <div class="section">
-            <h2 class="section-title">👋 Step 3: Welcome Message & Recommendations Flow</h2>
             
-            <div class="info-box">
-                <strong>📁 Key Files:</strong>
-                <ul style="margin-top: 10px;">
-                    <li><code>frontend/src/app/chat/page.tsx</code> - Chat page route</li>
-                    <li><code>frontend/src/components/MOGIChatbot.tsx</code> - Main chatbot component</li>
-                    <li><code>frontend/src/components/WelcomeMessage.tsx</code> - Welcome message display</li>
-                    <li><code>backend/app/routes/chat_routes.py</code> - Welcome endpoint</li>
-                    <li><code>backend/app/welcome_message_service.py</code> - Welcome message generation</li>
-                    <li><code>backend/app/comprehensive_recommendations.py</code> - All recommendation categories</li>
-                </ul>
+            <!-- Detailed End-to-End Walkthrough -->
+            <div class="section" id="walkthrough">
+                <h2>📖 Detailed End-to-End Walkthrough</h2>
+                <p>This section traces exactly what happens from the moment a user opens the app until they see their personalized welcome. Every step shows the frontend file, backend file, and what data moves where.</p>
+                
+                <h3>Step 1: User Opens Login Page</h3>
+                <div class="layer">
+                    <p><strong>What the user sees:</strong> Browser shows <code>http://localhost:3000/login</code>. A form with Phone Number, First Name, Last Name, and a "Send Verification Code" button.</p>
+                    <p><strong>Frontend files:</strong></p>
+                    <ul class="component-list">
+                        <li><code>frontend/src/app/login/page.tsx</code> – Renders the LoginPage component</li>
+                        <li><code>frontend/src/components/PhoneInput.tsx</code> – Philippine phone input with format validation</li>
+                    </ul>
+                    <p><strong>What's in state:</strong> <code>phoneNumber</code>, <code>firstName</code>, <code>lastName</code>, <code>otpSent</code> (false), <code>otp</code>, <code>error</code>, <code>loading</code></p>
+                </div>
+                
+                <h3>Step 2: User Clicks "Send Verification Code"</h3>
+                <div class="layer">
+                    <p><strong>Frontend:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>frontend/src/app/login/page.tsx</code></li>
+                        <li>Handler: <code>handleSendOTP(e)</code> – called on form submit</li>
+                        <li>Calls: <code>authApi.sendOTPPhone(phoneNumber, firstName, lastName)</code></li>
+                    </ul>
+                    <p><strong>API client:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>frontend/src/lib/api.ts</code></li>
+                        <li>Function: <code>authApi.sendOTPPhone()</code> sends <code>POST</code> to <code>http://localhost:8000/api/auth/send-otp-phone</code></li>
+                        <li>Request body: <code>{ "phone_number": "09123456789", "first_name": "Juan", "last_name": "Dela Cruz" }</code></li>
+                        <li>Headers: <code>Content-Type: application/json</code></li>
+                    </ul>
+                    <p><strong>Backend:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>backend/app/routes/auth_routes.py</code></li>
+                        <li>Route: <code>@router.post("/send-otp-phone")</code> → <code>send_otp_phone(request)</code></li>
+                        <li>Logic: Normalizes phone to <code>+639123456789</code>, sets OTP = <code>"000000"</code> (dev mode)</li>
+                    </ul>
+                    <p><strong>Storage (Redis):</strong></p>
+                    <ul class="component-list">
+                        <li>Key: <code>otp:phone:+639123456789</code> → Value: <code>"000000"</code> (expires in 600 sec)</li>
+                        <li>Key: <code>otp:meta:phone:+639123456789</code> → Value: <code>{"first_name":"Juan","last_name":"Dela Cruz","phone_number":"+639123456789"}</code></li>
+                    </ul>
+                    <p><strong>Response to frontend:</strong> <code>{ "message": "OTP sent...", "otp": "000000", "phone_number": "+639123456789" }</code></p>
+                    <p><strong>Frontend after success:</strong> <code>setOtpSent(true)</code> – form switches to OTP input + "Verify & Login" button</p>
+                </div>
+                
+                <h3>Step 3: User Enters OTP and Clicks "Verify & Login"</h3>
+                <div class="layer">
+                    <p><strong>Frontend:</strong></p>
+                    <ul class="component-list">
+                        <li>Handler: <code>handleVerifyOTP(e)</code> in <code>login/page.tsx</code></li>
+                        <li>Calls: <code>authApi.verifyOTPPhone(phoneNumber, otp, firstName, lastName)</code></li>
+                    </ul>
+                    <p><strong>API request:</strong></p>
+                    <ul class="component-list">
+                        <li><code>POST http://localhost:8000/api/auth/verify-otp-phone</code></li>
+                        <li>Body: <code>{ "phone_number": "09123456789", "otp": "000000", "first_name": "Juan", "last_name": "Dela Cruz" }</code></li>
+                    </ul>
+                    <p><strong>Backend:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>backend/app/routes/auth_routes.py</code> – <code>verify_otp_phone(request)</code></li>
+                        <li>1. Read OTP from Redis: <code>otp_key = "otp:phone:+639123456789"</code></li>
+                        <li>2. Dev mode: accept <code>"000000"</code> even if Redis empty</li>
+                        <li>3. Delete OTP keys from Redis (one-time use)</li>
+                        <li>4. Generate <code>user_id = uuid4()</code></li>
+                        <li>5. Call <code>profile_service.create_profile(user_id, name, phone_number, ...)</code></li>
+                    </ul>
+                    <p><strong>Profile creation (user_profile.py):</strong></p>
+                    <ul class="component-list">
+                        <li><code>create_profile()</code> → <code>instantdb_client.create_user_profile(user_id, profile_dict)</code></li>
+                        <li>InstantDB: Creates user with defaults (personality traits = 0.5)</li>
+                        <li>BigQuery: Not used for profile creation (InstantDB only)</li>
+                    </ul>
+                    <p><strong>Background task started:</strong></p>
+                    <ul class="component-list">
+                        <li><code>asyncio.create_task(_run_personality_analysis())</code> – fire-and-forget</li>
+                        <li>Waits 1 sec, then calls <code>analyze_personality_from_social_media(user_id, first_name, last_name, phone_number)</code></li>
+                        <li>Runs in parallel; does NOT block the response</li>
+                        <li><strong>Uses LLM (OpenAI):</strong> Bright Data SERP search → LLM summarizes results → LLM infers personality traits (adventurous, cultural, foodie, nature_lover, history_buff, social) → saves to cache + InstantDB</li>
+                    </ul>
+                    <p><strong>Response to frontend:</strong></p>
+                    <ul class="component-list">
+                        <li><code>{ "access_token": "eyJ...", "token_type": "bearer", "user_id": "uuid-...", "email": "+639123456789@phone.local", "phone_number": "+639123456789" }</code></li>
+                    </ul>
+                    <p><strong>Frontend stores in localStorage:</strong></p>
+                    <ul class="component-list">
+                        <li><code>auth_token</code>, <code>user_id</code>, <code>user_email</code>, <code>user_phone</code></li>
+                    </ul>
+                    <p><strong>Redirect:</strong> <code>router.push("/chat")</code></p>
+                </div>
+                
+                <h3>Step 4: User Lands on Chat Page</h3>
+                <div class="layer">
+                    <p><strong>Frontend:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>frontend/src/app/chat/page.tsx</code></li>
+                        <li>Renders: <code>MOGIChatbot</code> component (from <code>frontend/src/components/MOGIChatbot.tsx</code>)</li>
+                    </ul>
+                    <p><strong>Auth check:</strong></p>
+                    <ul class="component-list">
+                        <li><code>useEffect</code> calls <code>isAuthenticated()</code> – checks <code>localStorage.getItem('auth_token')</code></li>
+                        <li>If no token → <code>router.replace("/login")</code></li>
+                        <li>If token exists → show <code>MOGIChatbot</code></li>
+                    </ul>
+                </div>
+                
+                <h3>Step 5: MOGIChatbot Loads Welcome Message</h3>
+                <div class="layer">
+                    <p><strong>Frontend:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>frontend/src/components/MOGIChatbot.tsx</code></li>
+                        <li>On mount: <code>useEffect</code> runs <code>loadWelcome()</code></li>
+                        <li>Calls: <code>chatApi.getWelcomeMessage()</code></li>
+                    </ul>
+                    <p><strong>API request:</strong></p>
+                    <ul class="component-list">
+                        <li><code>GET http://localhost:8000/api/chat/welcome</code></li>
+                        <li>Headers: <code>Authorization: Bearer &lt;token&gt;</code> (from localStorage)</li>
+                    </ul>
+                    <p><strong>Backend:</strong></p>
+                    <ul class="component-list">
+                        <li>File: <code>backend/app/routes/chat_routes.py</code> – <code>get_welcome_message(current_user)</code></li>
+                        <li><code>get_current_user</code> validates JWT, extracts <code>user_id</code> from token</li>
+                    </ul>
+                    <p><strong>Welcome logic (chat_routes.py):</strong></p>
+                    <ul class="component-list">
+                        <li>1. Poll for personality: loop up to 60 times (30 sec), call <code>profile_service.get_profile(user_id)</code> every 0.5s</li>
+                        <li>2. Break when profile has any trait &gt; 0.5 (personality analysis done) or timeout</li>
+                    </ul>
+                    <p><strong>get_profile (user_profile.py):</strong></p>
+                    <ul class="component-list">
+                        <li>1. Try <code>instantdb_client.get_user_profile(user_id)</code> first</li>
+                        <li>2. If empty → fallback <code>bigquery_client.get_user_profile(user_id)</code></li>
+                        <li>3. If personality all 0.5 → check <code>_personality_cache[user_id]</code> (set by personality_pipeline when done)</li>
+                        <li>4. Return <code>UserProfile</code> with personality</li>
+                    </ul>
+                    <p><strong>Welcome generation:</strong></p>
+                    <ul class="component-list">
+                        <li><code>welcome_service.generate_welcome_message(user_name, personality)</code> – LLM generates personalized text</li>
+                        <li><code>recommendations_service.get_all_recommendations(user_id)</code> – fetches tourist spots, hotels, restaurants, beaches, mountains, resorts, secret spots, places to avoid</li>
+                        <li>Saves recommendations to InstantDB</li>
+                    </ul>
+                    <p><strong>Response:</strong></p>
+                    <ul class="component-list">
+                        <li><code>{ "type": "welcome", "content": "Kumusta Juan!...", "recommendations": {...}, "personality_summary": "..." }</code></li>
+                    </ul>
+                    <p><strong>Frontend displays:</strong></p>
+                    <ul class="component-list">
+                        <li><code>setMessages([{ role: "assistant", type: "welcome", content, recommendations, personality_summary }])</code></li>
+                        <li><code>WelcomeMessage</code> component renders the content and <code>RecommendationCategory</code> cards</li>
+                    </ul>
+                </div>
+                
+                <h3>Step 6: Background – Personality Pipeline (Runs in Parallel)</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/personality_pipeline.py</code> – <code>analyze_personality_from_social_media()</code></p>
+                    <p><strong>Flow:</strong></p>
+                    <ul class="component-list">
+                        <li>1. <code>SocialMediaScraper.search_social_profiles(first_name, last_name)</code> – Bright Data SERP or Scrapy</li>
+                        <li>2. Optionally scrape Facebook/Instagram (often blocked) – if empty, use SERP</li>
+                        <li>3. <code>bright_data_client.search_public(source="google", query="Juan Dela Cruz")</code></li>
+                        <li>4. <code>PersonalityAnalyzer.summarize_google_search_results(serp_results, ...)</code> – LLM summarizes</li>
+                        <li>5. <code>PersonalityAnalyzer.analyze_personality_from_summary(summary)</code> – LLM returns PersonalityTraits</li>
+                        <li>6. <code>profile_service._set_cached_personality(user_id, personality)</code> – in-memory cache (instant for frontend)</li>
+                        <li>7. <code>profile_service.update_personality(user_id, personality)</code> → <code>instantdb_client.update_user_profile()</code> – saves to InstantDB</li>
+                    </ul>
+                    <p><strong>Timing:</strong> Starts ~1 second after verify-otp. Usually finishes in 5–30 seconds. Welcome endpoint polls for it, so user sees personality as soon as it's in cache or InstantDB.</p>
+                </div>
+                
+                <h2 id="scrape-llm">📡 Scrape Data and LLM Flow (Detailed)</h2>
+                <p>This section explains exactly how data is collected (search + optional scrape) and how it is passed through the LLM to produce personality traits.</p>
+                
+                <h3>Overview: Two Data Paths</h3>
+                <div class="layer">
+                    <p>The pipeline tries <strong>Path A</strong> first (social profile search + optional page scrape). If that returns no usable data, it uses <strong>Path B</strong> (Google SERP search only). Both paths end with the same LLM steps: <em>summarize</em> → <em>analyze personality</em>.</p>
+                    <ul class="component-list">
+                        <li><strong>Path A:</strong> Search for Facebook/Instagram profiles (Bright Data) → optionally scrape profile page (Scrapy + Bright Data proxy) → LLM summarizes scraped data → LLM extracts traits</li>
+                        <li><strong>Path B (primary in practice):</strong> Google SERP search for the person's name (Bright Data) → LLM summarizes SERP snippets → LLM extracts traits</li>
+                    </ul>
+                </div>
+                
+                <h3>Step 1: Search for Social Profiles (Scraper)</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/social_scraper.py</code></p>
+                    <p><strong>Function:</strong> <code>SocialMediaScraper.search_social_profiles(first_name, last_name, phone_number)</code></p>
+                    <p><strong>What it does:</strong></p>
+                    <ul class="component-list">
+                        <li>Uses <strong>Bright Data</strong> (<code>self.bright_data</code> = <code>bright_data_client</code>) to run <strong>Google searches</strong>, not direct Facebook/Instagram APIs.</li>
+                        <li>First query: <code>"{first_name} {last_name}" site:facebook.com</code> → <code>bright_data_client.search_public(source="google", query=facebook_query, limit=5)</code></li>
+                        <li>Second query: <code>"{first_name} {last_name}" site:instagram.com</code> → same <code>search_public("google", instagram_query, 5)</code></li>
+                        <li>Returns: <code>{ "facebook_profiles": [...], "instagram_profiles": [...] }</code> – each item has <code>title</code>, <code>snippet</code>, <code>url</code> from search results.</li>
+                    </ul>
+                    <p><strong>Code reference:</strong> <code>social_scraper.py</code> lines ~273–317.</p>
+                </div>
+                
+                <h3>Step 2: Optional – Scrape Profile Page (Scrapy)</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/social_scraper.py</code></p>
+                    <p><strong>Function:</strong> <code>scraper.scrape_profile_data(profile_url, "facebook" | "instagram")</code></p>
+                    <p><strong>What it does:</strong></p>
+                    <ul class="component-list">
+                        <li>Runs a <strong>Scrapy</strong> spider (<code>FacebookProfileSpider</code> or <code>InstagramProfileSpider</code> from <code>app/scrapers/social_media_spider.py</code>) to fetch the profile page HTML.</li>
+                        <li>Uses <strong>Bright Data Residential Proxy</strong> (<code>_get_bright_data_proxy()</code>) so requests come from residential IPs; configured via <code>bright_data_residential_username</code>, <code>bright_data_residential_password</code>, <code>bright_data_residential_endpoint</code> in settings.</li>
+                        <li>Returns a dict like <code>{ "bio", "posts_content", "interests", "location", ... }</code> if scraping succeeds. Often fails (Facebook/Instagram block bots), so pipeline falls back to SERP.</li>
+                    </ul>
+                    <p><strong>Code reference:</strong> <code>social_scraper.py</code> <code>scrape_profile_data</code> and <code>_run_scrapy_spider</code>; proxy in <code>_get_bright_data_proxy()</code>.</p>
+                </div>
+                
+                <h3>Step 3: SERP-Only Path – Google Search for the Person</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/personality_pipeline.py</code></p>
+                    <p><strong>When:</strong> Used when <code>scraped_data</code> is empty or not meaningful (no bio, posts, or interests).</p>
+                    <p><strong>What it does:</strong></p>
+                    <ul class="component-list">
+                        <li>Imports <code>bright_data_client</code> from <code>app.bright_data_client</code>.</li>
+                        <li>Builds query: <code>google_query = f"{first_name} {last_name}"</code> (optionally appends <code>phone_number</code>).</li>
+                        <li>Calls <code>bright_data_client.search_public(source="google", query=google_query, limit=10)</code>.</li>
+                        <li>Gets back <code>serp_results</code> with <code>results</code> array: each item has <code>title</code>, <code>snippet</code>, <code>url</code> (search result snippets, not full page content).</li>
+                    </ul>
+                    <p><strong>Code reference:</strong> <code>personality_pipeline.py</code> lines ~122–139.</p>
+                </div>
+                
+                <h3>Step 4: Pass Data to LLM – Summarize</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/personality_analyzer.py</code></p>
+                    <p><strong>LLM instance:</strong> <code>PersonalityAnalyzer</code> uses <code>self.llm = get_chat_llm(temperature=0.3)</code> from <code>app/llm_factory.py</code> (e.g. OpenAI).</p>
+                    <p><strong>Path A – Scraped data:</strong></p>
+                    <ul class="component-list">
+                        <li>Function: <code>analyzer.summarize_social_data(scraped_data)</code></li>
+                        <li>Input: dict with <code>bio</code>, <code>posts_content</code>, <code>interests</code>, <code>location</code> from Scrapy.</li>
+                        <li>Builds a prompt asking the LLM to summarize the profile into interests, travel preferences, social behavior, activity preferences, personality indicators.</li>
+                        <li>Call: <code>response = await self.llm.ainvoke(summary_prompt)</code> → returns a text summary.</li>
+                    </ul>
+                    <p><strong>Path B – SERP results:</strong></p>
+                    <ul class="component-list">
+                        <li>Function: <code>analyzer.summarize_google_search_results(serp_results, first_name, last_name)</code></li>
+                        <li>Input: <code>serp_results["results"]</code> – list of <code>{ title, snippet, url }</code>.</li>
+                        <li>Builds <code>search_context</code> from top 10 results (title + snippet + URL per result), then a prompt asking the LLM to analyze the search results for that person and produce a personality profile (interests, travel, social behavior, activity preferences, personality indicators).</li>
+                        <li>Call: <code>response = await self.llm.ainvoke(summary_prompt)</code> → returns a text summary.</li>
+                    </ul>
+                    <p><strong>Code reference:</strong> <code>personality_analyzer.py</code> – <code>summarize_social_data</code> (~18–74), <code>summarize_google_search_results</code> (~240–315).</p>
+                </div>
+                
+                <h3>Step 5: LLM – Extract Personality Traits</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/personality_analyzer.py</code></p>
+                    <p><strong>Function:</strong> <code>analyzer.analyze_personality_from_summary(summary)</code></p>
+                    <p><strong>Input:</strong> The text <code>summary</code> from Step 4 (either from scraped data or from SERP).</p>
+                    <p><strong>What it does:</strong></p>
+                    <ul class="component-list">
+                        <li>Builds a long <code>analysis_prompt</code> that includes the summary and instructs the LLM to assign scores 0.0–1.0 for: <code>adventurous</code>, <code>cultural</code>, <code>foodie</code>, <code>nature_lover</code>, <code>history_buff</code>, <code>social</code>, with rules (e.g. "sports" → adventurous 0.7–0.9, "cultural" → cultural 0.7–0.9).</li>
+                        <li>Asks the LLM to return <strong>only valid JSON</strong> with those six keys plus optional <code>reasoning</code>.</li>
+                        <li>Call: <code>response = await self.llm.ainvoke(analysis_prompt)</code>.</li>
+                        <li>Parses the response (strips markdown code blocks if present, extracts JSON), then builds a <code>PersonalityTraits</code> model and clamps each score to 0.0–1.0.</li>
+                    </ul>
+                    <p><strong>Output:</strong> <code>PersonalityTraits(adventurous=..., cultural=..., foodie=..., nature_lover=..., history_buff=..., social=...)</code>.</p>
+                    <p><strong>Code reference:</strong> <code>personality_analyzer.py</code> <code>analyze_personality_from_summary</code> (~75–196).</p>
+                </div>
+                
+                <h3>Step 6: Save Personality – Cache and InstantDB</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/personality_pipeline.py</code> (after LLM returns)</p>
+                    <p><strong>What it does:</strong></p>
+                    <ul class="component-list">
+                        <li><code>profile_service._set_cached_personality(user_id, personality)</code> – stores in in-memory <code>_personality_cache</code> so the welcome endpoint can return correct traits immediately even before InstantDB is updated.</li>
+                        <li><code>profile_service.update_personality(user_id, personality)</code> → <code>user_profile.py</code> calls <code>instantdb_client.update_user_profile(user_id, update_data)</code> to persist to InstantDB.</li>
+                    </ul>
+                </div>
+                
+                <h3>Summary: Scrape → LLM Data Flow</h3>
+                <table>
+                    <tr><th>Step</th><th>File</th><th>Function / API</th><th>Data in → Data out</th></tr>
+                    <tr><td>1</td><td>social_scraper.py</td><td>search_social_profiles</td><td>name, phone → Bright Data Google search → facebook_profiles, instagram_profiles (title, snippet, url)</td></tr>
+                    <tr><td>2 (optional)</td><td>social_scraper.py</td><td>scrape_profile_data</td><td>profile_url, platform → Scrapy + Bright Data proxy → bio, posts_content, interests</td></tr>
+                    <tr><td>3 (if no scrape)</td><td>personality_pipeline.py</td><td>bright_data_client.search_public</td><td>first_name, last_name → Google SERP → serp_results.results (title, snippet, url)</td></tr>
+                    <tr><td>4</td><td>personality_analyzer.py</td><td>summarize_social_data OR summarize_google_search_results</td><td>scraped_data OR serp_results → LLM.ainvoke(prompt) → text summary</td></tr>
+                    <tr><td>5</td><td>personality_analyzer.py</td><td>analyze_personality_from_summary</td><td>summary → LLM.ainvoke(analysis_prompt) → JSON → PersonalityTraits</td></tr>
+                    <tr><td>6</td><td>user_profile.py</td><td>_set_cached_personality + update_personality</td><td>PersonalityTraits → cache + InstantDB</td></tr>
+                </table>
+                
+                <h3>Summary: Files Touched in Order</h3>
+                <table>
+                    <tr><th>Order</th><th>Layer</th><th>File</th><th>Function / Action</th></tr>
+                    <tr><td>1</td><td>Frontend</td><td>login/page.tsx</td><td>handleSendOTP → authApi.sendOTPPhone</td></tr>
+                    <tr><td>2</td><td>API</td><td>lib/api.ts</td><td>POST /api/auth/send-otp-phone</td></tr>
+                    <tr><td>3</td><td>Backend</td><td>auth_routes.py</td><td>send_otp_phone → Redis.set(otp:phone:...)</td></tr>
+                    <tr><td>4</td><td>Frontend</td><td>login/page.tsx</td><td>handleVerifyOTP → authApi.verifyOTPPhone</td></tr>
+                    <tr><td>5</td><td>Backend</td><td>auth_routes.py</td><td>verify_otp_phone → create_profile + create_task(personality)</td></tr>
+                    <tr><td>6</td><td>Backend</td><td>user_profile.py</td><td>create_profile → instantdb_client.create_user_profile</td></tr>
+                    <tr><td>7</td><td>Frontend</td><td>lib/api.ts</td><td>Store token in localStorage, return</td></tr>
+                    <tr><td>8</td><td>Frontend</td><td>login/page.tsx</td><td>router.push("/chat")</td></tr>
+                    <tr><td>9</td><td>Frontend</td><td>chat/page.tsx</td><td>isAuthenticated() → MOGIChatbot</td></tr>
+                    <tr><td>10</td><td>Frontend</td><td>MOGIChatbot.tsx</td><td>chatApi.getWelcomeMessage() → GET /api/chat/welcome</td></tr>
+                    <tr><td>11</td><td>Backend</td><td>chat_routes.py</td><td>get_welcome_message → get_profile, welcome_service, recommendations_service</td></tr>
+                    <tr><td>12</td><td>Backend</td><td>user_profile.py</td><td>get_profile → InstantDB first, cache fallback</td></tr>
+                    <tr><td>13</td><td>Backend</td><td>comprehensive_recommendations.py</td><td>get_all_recommendations → save to InstantDB</td></tr>
+                    <tr><td>14</td><td>Frontend</td><td>MOGIChatbot.tsx</td><td>setMessages → WelcomeMessage renders</td></tr>
+                </table>
             </div>
+            
+            <!-- Code: What Runs When -->
+            <div class="section" id="code">
+                <h2>💻 Code: What Runs When</h2>
+                
+                <h3>1. Verify OTP → Create Profile + Start Personality</h3>
+                <div class="code-block"># backend/app/routes/auth_routes.py - verify_otp_phone()
 
-            <div class="flow-container">
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">1</span>Chat Page Loads</h3>
-                    <div class="file-path">frontend/src/app/chat/page.tsx</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> User redirected to <code>/chat</code> route. The page renders the MOGIChatbot component
-                    </div>
-                    <div class="code">
-<span class="comment">// Chat page is simple wrapper</span>
-<span class="keyword">export default function</span> ChatPage() {
-    <span class="keyword">return</span> &lt;MOGIChatbot /&gt;;
-}
-                    </div>
-                </div>
+# Create profile (InstantDB + BigQuery)
+user_profile = await profile_service.create_profile(
+    user_id=user_id, name=user_name, phone_number=phone_number, ...
+)
 
-                <div class="arrow">⬇️</div>
+# Start personality analysis in BACKGROUND (does not block response)
+asyncio.create_task(_run_personality_analysis())  # Fire-and-forget
 
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">2</span>MOGIChatbot Component Mounts</h3>
-                    <div class="file-path">frontend/src/components/MOGIChatbot.tsx</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Component mounts, useEffect hook automatically calls welcome endpoint
-                    </div>
-                    <div class="code">
-<span class="comment">// Auto-load welcome message on mount</span>
-useEffect(() => {
-    <span class="keyword">const</span> loadWelcome = <span class="keyword">async</span> () => {
-        <span class="keyword">const</span> welcomeData = await chatApi.getWelcomeMessage();
-        setMessages([{
-            role: <span class="string">"assistant"</span>,
-            type: <span class="string">"welcome"</span>,
-            content: welcomeData.content,
-            recommendations: welcomeData.recommendations,
-            personality_summary: welcomeData.personality_summary
-        }]);
-    };
-    loadWelcome();
-}, []);
-                    </div>
-                </div>
+# Return JWT immediately so user can go to /chat</div>
+                
+                <h3>2. Personality Analysis (Background Task)</h3>
+                <div class="code-block"># backend/app/personality_pipeline.py - analyze_personality_from_social_media()
 
-                <div class="arrow">⬇️</div>
+# Step 1: Search for social profiles (Bright Data SERP or Scrapy)
+search_results = await scraper.search_social_profiles(first_name, last_name)
+scraped_data = await scraper.scrape_profile_data(profile_url, "facebook")  # Optional
 
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">3</span>Backend Welcome Endpoint Called</h3>
-                    <div class="file-path">backend/app/routes/chat_routes.py → get_welcome_message()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Endpoint loads user profile, generates welcome message, fetches all recommendations
-                    </div>
-                    <div class="code">
-<span class="comment">// GET /api/chat/welcome</span>
-<span class="keyword">async def</span> get_welcome_message(current_user):
-    <span class="comment">// Load user profile with personality</span>
+# Step 2: If no scraped data → use SERP Google search
+serp_results = await bright_data_client.search_public(source="google", query=google_query)
+
+# Step 3: LLM summarizes and infers personality
+summary = await analyzer.summarize_google_search_results(serp_results, ...)
+personality = await analyzer.analyze_personality_from_summary(summary)
+
+# Step 4: Save to cache + InstantDB; if BigQuery fails, add to retry queue
+profile_service._set_cached_personality(user_id, personality)
+success = await bigquery_client.update_user_profile(...)
+if not success:
+    await retry_queue.add_retry(user_id, personality)</div>
+                
+                <h3>3. Welcome Endpoint (Chat Page Load)</h3>
+                <div class="code-block"># backend/app/routes/chat_routes.py - get_welcome_message()
+
+# Wait up to 30s for personality (polls every 0.5s)
+for attempt in range(60):
     profile = await profile_service.get_profile(user_id)
-    personality = profile.personality
-    
-    <span class="comment">// Generate welcome message</span>
-    welcome_text = await welcome_service.generate_welcome_message(
-        user_name, personality
-    )
-    
-    <span class="comment">// Get all recommendations</span>
-    recommendations = await recommendations_service.get_all_recommendations(user_id)
-    
-    <span class="keyword">return</span> RichMessage(
-        type=<span class="string">"welcome"</span>,
-        content=welcome_text,
-        recommendations=recommendations,
-        personality_summary=personality_summary
-    )
-                    </div>
-                </div>
+    if profile and any(v > 0.5 for v in profile.personality.model_dump().values()):
+        break
+    await asyncio.sleep(0.5)
 
-                <div class="arrow">⬇️</div>
+# get_profile() checks: InstantDB → BigQuery → in-memory cache
+# If DB has all 0.5, cache returns analyzed personality immediately
 
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">4</span>Generate Welcome Message</h3>
-                    <div class="file-path">backend/app/welcome_message_service.py → generate_welcome_message()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> LLM generates personalized welcome message mentioning user's top personality traits
-                    </div>
-                    <div class="code">
-<span class="comment">// Welcome message prompt</span>
-welcome_prompt = <span class="string">"""
-You are MOGI, a friendly puppet mascot guide for Bacolod, Philippines.
+welcome_text = await welcome_service.generate_welcome_message(user_name, personality)
+recommendations = await recommendations_service.get_all_recommendations(user_id)
 
-Generate a warm, personalized welcome message for {user_name} that:
-1. Introduces yourself as MOGI
-2. Mentions their personality traits: {top_traits}
-3. Explains that you've prepared personalized recommendations
-4. Invites them to explore the recommendations or ask questions
-"""</span>
+return RichMessage(content=welcome_text, recommendations=recommendations, ...)</div>
+                
+                <h3>4. Frontend Calls Welcome</h3>
+                <div class="code-block">// frontend/src/components/MOGIChatbot.tsx
 
-<span class="comment">// Example output</span>
-<span class="string">"Kumusta Juan! I'm MOGI, your friendly guide to Bacolod! 🎭 
-I see you're adventurous (85%) and love food (92%) - perfect for 
-exploring Bacolod! I've prepared personalized recommendations 
-just for you..."</span>
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">5</span>Fetch Comprehensive Recommendations</h3>
-                    <div class="file-path">backend/app/comprehensive_recommendations.py → get_all_recommendations()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Service fetches recommendations for all categories, filters by personality match score, and saves recommendation scores to BigQuery
-                    </div>
-                    <div class="code">
-<span class="comment">// All recommendation categories</span>
-recommendations = {
-    <span class="string">"hotels"</span>: await _get_hotels(profile, location),
-    <span class="string">"restaurants"</span>: await _get_restaurants(profile, location),
-    <span class="string">"beaches"</span>: await _get_beaches(profile, location),
-    <span class="string">"mountains"</span>: await _get_mountains(profile, location),
-    <span class="string">"resorts"</span>: await _get_resorts(profile, location),
-    <span class="string">"tourist_spots"</span>: await _get_tourist_spots(profile, location),
-    <span class="string">"hidden_gems"</span>: await _get_hidden_gems(profile, location),
-    <span class="string">"events"</span>: await _get_events(location),
-    <span class="string">"businesses"</span>: await _get_businesses(location),
-    <span class="string">"places_to_avoid"</span>: await _get_places_to_avoid(location)
-}
-
-<span class="comment">// Each recommendation includes:</span>
-{
-    <span class="string">"id"</span>: <span class="string">"123"</span>,
-    <span class="string">"name"</span>: <span class="string">"Chicken Inasal Restaurant"</span>,
-    <span class="string">"description"</span>: <span class="string">"Famous local dish..."</span>,
-    <span class="string">"match_score"</span>: <span class="keyword">0.92</span>,  <span class="comment">// High match for foodie</span>
-    <span class="string">"links"</span>: {
-        <span class="string">"details"</span>: <span class="string">"/recommendations/123"</span>,
-        <span class="string">"map"</span>: <span class="string">"https://maps.google.com/?q=..."</span>,
-        <span class="string">"website"</span>: <span class="string">"https://restaurant.com"</span>
-    },
-    <span class="string">"image"</span>: <span class="string">"https://..."</span>
-}
-
-<span class="comment">// Recommendation score saved to BigQuery</span>
-await bigquery_client.save_recommendation_score(
-    user_id=user_id,
-    item_id=<span class="string">"123"</span>,
-    item_name=<span class="string">"Chicken Inasal Restaurant"</span>,
-    category=<span class="string">"restaurants"</span>,
-    match_score=<span class="keyword">0.92</span>,
-    personality_match_scores={...},
-    recommendation_data={...}
-)
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">6</span>Display Welcome Message</h3>
-                    <div class="file-path">frontend/src/components/WelcomeMessage.tsx</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> WelcomeMessage component renders MOGI avatar, welcome text, personality summary, and recommendation categories with clickable cards
-                    </div>
-                    <div class="code">
-<span class="comment">// Component structure</span>
-&lt;div className=<span class="string">"welcome-message"</span>&gt;
-    &lt;div className=<span class="string">"mogi-avatar"</span>&gt;🎭&lt;/div&gt;
-    &lt;h2&gt;MOGI&lt;/h2&gt;
-    &lt;p&gt;{content}&lt;/p&gt;  <span class="comment">// Welcome text</span>
-    
-    &lt;div className=<span class="string">"personality-summary"</span>&gt;
-        {personality_summary}  <span class="comment">// "Adventurous (85%), Foodie (92%)"</span>
-    &lt;/div&gt;
-    
-    &lt;RecommendationCategory title=<span class="string">"✨ Hidden Gems"</span> items={hidden_gems} /&gt;
-    &lt;RecommendationCategory title=<span class="string">"Hotels"</span> items={hotels} /&gt;
-    &lt;RecommendationCategory title=<span class="string">"Restaurants"</span> items={restaurants} /&gt;
-    <span class="comment">// ... more categories</span>
-&lt;/div&gt;
-                    </div>
-                </div>
+useEffect(() => {
+  const loadWelcome = async () => {
+    const welcomeData = await chatApi.getWelcomeMessage();  // GET /api/chat/welcome
+    setMessages([{
+      role: "assistant",
+      type: "welcome",
+      content: welcomeData.content,
+      recommendations: welcomeData.recommendations,
+      personality_summary: welcomeData.personality_summary
+    }]);
+  };
+  loadWelcome();
+}, []);</div>
             </div>
-
-            <div class="endpoint-box">
-                <h4>📡 Welcome Endpoint</h4>
-                <div>
-                    <span class="method get">GET</span>
-                    <span class="url">/api/chat/welcome</span>
-                </div>
-                <div class="code" style="margin-top: 15px;">
-<span class="comment">Headers:</span>
-Authorization: Bearer JWT_TOKEN
-
-<span class="comment">Response:</span>
-{
-  <span class="string">"type"</span>: <span class="string">"welcome"</span>,
-  <span class="string">"content"</span>: <span class="string">"Kumusta Juan! I'm MOGI..."</span>,
-  <span class="string">"personality_summary"</span>: <span class="string">"Adventurous (85%), Foodie (92%)"</span>,
-  <span class="string">"recommendations"</span>: {
-    <span class="string">"hotels"</span>: [{...}, {...}],
-    <span class="string">"restaurants"</span>: [{...}, {...}],
-    <span class="string">"hidden_gems"</span>: [{...}, {...}],
-    <span class="comment">// ... all categories</span>
-  }
-}
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat Message Flow -->
-        <div class="section">
-            <h2 class="section-title">💬 Step 4: Chat Message Flow (User Talks to MOGI)</h2>
             
-            <div class="info-box">
-                <strong>📁 Key Files:</strong>
-                <ul style="margin-top: 10px;">
-                    <li><code>frontend/src/components/MOGIChatbot.tsx</code> - Chat input and message display</li>
-                    <li><code>backend/app/routes/chat_routes.py</code> - Chat endpoint</li>
-                    <li><code>backend/app/chat_agent.py</code> - LangChain chat agent</li>
-                    <li><code>backend/app/mogi_persona.py</code> - MOGI persona and system prompt</li>
-                </ul>
+            <!-- Overview Section -->
+            <div class="section">
+                <h2>📋 System Overview</h2>
+                <p>Bacolod Tourist (MOGI) is an AI-powered tourism platform. Profile data lives in <strong>InstantDB</strong> (real-time) and <strong>BigQuery</strong> (analytics). Personality is analyzed in the background after login; an <strong>in-memory cache</strong> lets the welcome message show correct traits immediately even when BigQuery's streaming buffer blocks updates. A <strong>background retry task</strong> saves to BigQuery once the buffer clears (~90 minutes).</p>
             </div>
-
-            <div class="flow-container">
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">1</span>User Types Message</h3>
-                    <div class="file-path">frontend/src/components/MOGIChatbot.tsx</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> User types message in chat input field and clicks "Send"
-                    </div>
-                    <div class="code">
-<span class="comment">// User input</span>
-<span class="string">"What are some hidden gems in Bacolod?"</span>
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">2</span>Frontend Sends Chat Request</h3>
-                    <div class="file-path">frontend/src/lib/api.ts → chatApi.sendMessage()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Frontend API client sends POST request to chat endpoint with user message
-                    </div>
-                    <div class="code">
-<span class="comment">// API call</span>
-await chatApi.sendMessage(<span class="string">"What are some hidden gems in Bacolod?"</span>)
-
-<span class="comment">// POST /api/chat/</span>
-{
-  <span class="string">"message"</span>: <span class="string">"What are some hidden gems in Bacolod?"</span>
-}
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">3</span>Backend Receives Message</h3>
-                    <div class="file-path">backend/app/routes/chat_routes.py → chat()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Endpoint extracts user_id from JWT token, passes message to chat agent
-                    </div>
-                    <div class="code">
-<span class="comment">// POST /api/chat/</span>
-<span class="keyword">async def</span> chat(chat_message, current_user):
-    user_id = current_user[<span class="string">"user_id"</span>]
-    chat_agent = ChatAgent()
-    response = await chat_agent.chat(
-        chat_message.message, 
-        user_id
-    )
-    <span class="keyword">return</span> ChatResponse(response=response)
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">4</span>Load User Profile & Personality</h3>
-                    <div class="file-path">backend/app/chat_agent.py → chat()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Chat agent loads user profile from Google BigQuery to get personality traits
-                    </div>
-                    <div class="code">
-<span class="comment">// Load user profile from BigQuery</span>
-profile = await profile_service.get_profile(user_id)
-personality = profile.personality  <span class="comment">// PersonalityTraits object</span>
-user_name = profile.first_name  <span class="comment">// "Juan"</span>
-
-<span class="comment">// Personality scores (stored as columns in BigQuery)</span>
-personality = {
-    adventurous: <span class="keyword">0.85</span>,
-    cultural: <span class="keyword">0.60</span>,
-    foodie: <span class="keyword">0.92</span>,
-    nature_lover: <span class="keyword">0.75</span>,
-    history_buff: <span class="keyword">0.40</span>,
-    social: <span class="keyword">0.80</span>
-}
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">5</span>Build MOGI System Prompt</h3>
-                    <div class="file-path">backend/app/mogi_persona.py → build_mogi_system_prompt()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Creates personalized system prompt that includes user's personality, name, and MOGI's instructions
-                    </div>
-                    <div class="code">
-<span class="comment">// System prompt includes:</span>
-<span class="string">"""
-You are MOGI, a friendly puppet mascot guide for Bacolod, Philippines.
-
-USER CONTEXT:
-- Name: Juan
-- Personality Profile:
-  * Adventurous: 0.85
-  * Cultural: 0.60
-  * Foodie: 0.92  ← Very high!
-  * Nature Lover: 0.75
-  * History Buff: 0.40
-  * Social: 0.80
-
-YOUR ROLE:
-- Help Juan discover amazing places in Bacolod
-- If foodie score is high (>0.7), emphasize restaurants and food experiences
-- Suggest hidden gems when user asks about "lesser-known places"
-- Personalize ALL recommendations based on personality profile
-...
-"""</span>
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">6</span>LangChain Processes Message</h3>
-                    <div class="file-path">backend/app/chat_agent.py → chat()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> LangChain ConversationChain processes user message with MOGI's personality-aware prompt, uses conversation memory, calls OpenAI GPT
-                    </div>
-                    <div class="code">
-<span class="comment">// Create LangChain chain</span>
-chain = ConversationChain(
-    llm=openai_gpt_llm,  <span class="comment">// OpenAI GPT (gpt-4o-mini or gpt-4o)</span>
-    prompt=mogi_prompt_template,
-    memory=conversation_memory,  <span class="comment">// From Redis</span>
-    verbose=<span class="keyword">False</span>
-)
-
-<span class="comment">// Process message</span>
-response = await chain.apredict(
-    input=<span class="string">"What are some hidden gems in Bacolod?"</span>
-)
-
-<span class="comment">// MOGI's response (personality-aware)</span>
-<span class="string">"Kumusta Juan! Since you're a foodie (92%) and love adventure (85%), 
-I'd recommend checking out [Hidden Gem Restaurant] - it's a lesser-known 
-spot that locals love! It matches your adventurous foodie personality perfectly..."</span>
-                    </div>
-                </div>
-
-                <div class="arrow">⬇️</div>
-
-                <div class="flow-box chat-path">
-                    <h3><span class="step-number">7</span>Save Chat Log & Display Response</h3>
-                    <div class="file-path">backend/app/chat_agent.py → save_chat_log()</div>
-                    <div class="explanation">
-                        <strong>What happens:</strong> Chat log is saved to BigQuery (message, response, personality context), then response is displayed in UI
-                    </div>
-                    <div class="code">
-<span class="comment">// Save chat log to BigQuery</span>
-await bigquery_client.save_chat_log(
-    user_id=user_id,
-    message=message,
-    response=response,
-    message_type=<span class="string">"text"</span>,
-    metadata={
-        <span class="string">"personality"</span>: personality.model_dump(),
-        <span class="string">"user_name"</span>: user_name
-    }
-)
-
-<span class="comment">// Add response to messages</span>
-setMessages(prev => [...prev, {
-    role: <span class="string">"assistant"</span>,
-    type: <span class="string">"text"</span>,
-    content: response.response
-}])
-
-<span class="comment">// Rendered in UI</span>
-&lt;div className=<span class="string">"message assistant"</span>&gt;
-    &lt;span&gt;🎭 MOGI&lt;/span&gt;
-    &lt;div&gt;{message.content}&lt;/div&gt;
-&lt;/div&gt;
-                    </div>
-                </div>
-            </div>
-
-            <div class="endpoint-box">
-                <h4>📡 Chat Endpoint</h4>
-                <div>
-                    <span class="method post">POST</span>
-                    <span class="url">/api/chat/</span>
-                </div>
-                <div class="code" style="margin-top: 15px;">
-<span class="comment">Headers:</span>
-Authorization: Bearer JWT_TOKEN
-Content-Type: application/json
-
-<span class="comment">Request Body:</span>
-{
-  <span class="string">"message"</span>: <span class="string">"What are some hidden gems in Bacolod?"</span>
-}
-
-<span class="comment">Response:</span>
-{
-  <span class="string">"response"</span>: <span class="string">"Kumusta Juan! Since you're a foodie..."</span>
-}
-                </div>
-            </div>
-        </div>
-
-        <!-- File Structure Section -->
-        <div class="section">
-            <h2 class="section-title">📁 Complete File Structure & Purpose</h2>
             
-            <div class="file-list">
-                <h3>🔐 Authentication Files</h3>
-                <ul>
-                    <li>
-                        <strong>frontend/src/app/login/page.tsx</strong>
-                        <div class="file-desc">Main login page with phone/email toggle, OTP input, form handling</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/components/PhoneInput.tsx</strong>
-                        <div class="file-desc">Reusable Philippine phone number input component with auto-formatting</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/lib/api.ts</strong>
-                        <div class="file-desc">API client with sendOTPPhone(), verifyOTPPhone(), getWelcomeMessage(), sendMessage()</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/routes/auth_routes.py</strong>
-                        <div class="file-desc">Authentication endpoints: send_otp_phone(), verify_otp_phone(), triggers personality analysis</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/auth.py</strong>
-                        <div class="file-desc">JWT token creation, OTP generation, password hashing utilities</div>
-                    </li>
-                </ul>
+            <!-- Key Files & Triggers -->
+            <div class="section" id="files">
+                <h2>📁 Key Files & What Triggers Them</h2>
+                <table>
+                    <tr>
+                        <th>File</th>
+                        <th>Triggered By</th>
+                        <th>What It Does</th>
+                    </tr>
+                    <tr>
+                        <td><code>main.py</code> <code>lifespan()</code></td>
+                        <td>Backend startup</td>
+                        <td>Connects BigQuery, GCS, Redis; starts recommendation engine; starts retry task</td>
+                    </tr>
+                    <tr>
+                        <td><code>auth_routes.py</code> <code>verify_otp_phone</code></td>
+                        <td>POST /api/auth/verify-otp-phone</td>
+                        <td>Creates profile, fires <code>asyncio.create_task(_run_personality_analysis)</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>personality_pipeline.py</code></td>
+                        <td>Background task from verify-otp</td>
+                        <td>SERP search → LLM summary → personality traits → cache + InstantDB + retry queue</td>
+                    </tr>
+                    <tr>
+                        <td><code>chat_routes.py</code> <code>get_welcome_message</code></td>
+                        <td>GET /api/chat/welcome (from MOGIChatbot)</td>
+                        <td>Gets profile (with cache fallback), generates welcome + recommendations</td>
+                    </tr>
+                    <tr>
+                        <td><code>user_profile.py</code> <code>get_profile</code></td>
+                        <td>Called by welcome, recommendations</td>
+                        <td>InstantDB first → BigQuery fallback; if all 0.5, returns from <code>_personality_cache</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>bigquery_retry_queue.py</code></td>
+                        <td>Starts with app; runs every 2 min</td>
+                        <td>Retries failed BigQuery updates (streaming buffer blocks immediate writes)</td>
+                    </tr>
+                </table>
             </div>
-
-            <div class="file-list">
-                <h3>🧠 Personality Analysis Files</h3>
-                <ul>
-                    <li>
-                        <strong>backend/app/personality_pipeline.py</strong>
-                        <div class="file-desc">Main orchestrator: search → scrape → summarize → analyze → store</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/social_scraper.py</strong>
-                        <div class="file-desc">Bright Data integration for searching Facebook/Instagram profiles, orchestrates Scrapy spiders</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/scrapers/social_media_spider.py</strong>
-                        <div class="file-desc">Scrapy spiders (FacebookProfileSpider, InstagramProfileSpider) for extracting profile data</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/scrapers/proxy_middleware.py</strong>
-                        <div class="file-desc">Bright Data Residential Proxy middleware for Scrapy requests</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/personality_analyzer.py</strong>
-                        <div class="file-desc">LLM-based summarization and personality trait extraction using OpenAI GPT</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/user_profile.py</strong>
-                        <div class="file-desc">UserProfile model and UserProfileService for managing user data</div>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="file-list">
-                <h3>🎭 MOGI Chatbot Files</h3>
-                <ul>
-                    <li>
-                        <strong>backend/app/mogi_persona.py</strong>
-                        <div class="file-desc">MOGI persona definition and system prompt builder with personality context</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/chat_agent.py</strong>
-                        <div class="file-desc">LangChain ConversationChain agent that processes messages with MOGI persona</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/routes/chat_routes.py</strong>
-                        <div class="file-desc">Chat endpoints: GET /welcome, POST / (chat message)</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/app/chat/page.tsx</strong>
-                        <div class="file-desc">Chat page route that renders MOGIChatbot component</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/components/MOGIChatbot.tsx</strong>
-                        <div class="file-desc">Main chatbot UI component: message display, input, welcome message loading</div>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="file-list">
-                <h3>👋 Welcome & Recommendations Files</h3>
-                <ul>
-                    <li>
-                        <strong>backend/app/welcome_message_service.py</strong>
-                        <div class="file-desc">Generates personalized welcome message mentioning user's personality traits</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/comprehensive_recommendations.py</strong>
-                        <div class="file-desc">Fetches recommendations for all categories: hotels, restaurants, beaches, mountains, resorts, tourist spots, hidden gems, events, businesses, places to avoid</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/components/WelcomeMessage.tsx</strong>
-                        <div class="file-desc">Displays welcome message with MOGI avatar, personality summary, and recommendation categories</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/components/RecommendationCard.tsx</strong>
-                        <div class="file-desc">Individual recommendation card with name, description, image, match score, clickable links</div>
-                    </li>
-                    <li>
-                        <strong>frontend/src/components/RecommendationCategory.tsx</strong>
-                        <div class="file-desc">Collapsible category section that groups recommendation cards by type</div>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="file-list">
-                <h3>🗄️ Data & Storage Files</h3>
-                <ul>
-                    <li>
-                        <strong>backend/app/user_profile.py</strong>
-                        <div class="file-desc">UserProfile model and UserProfileService: manages user profiles, personality, social media data in Google BigQuery</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/bigquery_client.py</strong>
-                        <div class="file-desc">BigQuery client for database operations: user profiles, personality traits, recommendation scores, chat logs, interaction logs</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/storage_client.py</strong>
-                        <div class="file-desc">Google Cloud Storage client for file and image storage</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/redis_client.py</strong>
-                        <div class="file-desc">Redis client for OTP storage and conversation memory caching</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/models/interaction_log.py</strong>
-                        <div class="file-desc">InteractionLog model for storing user interactions and analytics</div>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="file-list">
-                <h3>⚙️ Configuration & Infrastructure Files</h3>
-                <ul>
-                    <li>
-                        <strong>backend/app/main.py</strong>
-                        <div class="file-desc">FastAPI application entry point, CORS setup, route registration, lifespan events</div>
-                    </li>
-                    <li>
-                        <strong>backend/app/config.py</strong>
-                        <div class="file-desc">Application settings: environment variables, API keys, database URLs</div>
-                    </li>
-                    <li>
-                        <strong>docker-compose.yml</strong>
-                        <div class="file-desc">Local development: Redis container (MongoDB removed - using BigQuery)</div>
-                    </li>
-                    <li>
-                        <strong>backend/.env</strong>
-                        <div class="file-desc">Environment variables: GCP credentials, BigQuery dataset, Cloud Storage bucket configuration</div>
-                    </li>
-                    <li>
-                        <strong>backend/gen-lang-client-*.json</strong>
-                        <div class="file-desc">Google Cloud service account credentials (should be in .gitignore)</div>
-                    </li>
-                    <li>
-                        <strong>package.json</strong>
-                        <div class="file-desc">Root package.json with pnpm workspace scripts: dev, build, test</div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Google Cloud Platform Setup Section -->
-        <div class="section">
-            <h2 class="section-title">☁️ Google Cloud Platform Setup Guide</h2>
             
-            <div class="highlight-box" style="background: #fff3cd; border-left: 6px solid #ffc107;">
-                <h3 style="color: #856404; margin-bottom: 15px;">📋 Prerequisites</h3>
-                <ul style="line-height: 2;">
-                    <li>Google Cloud Platform account (<a href="https://cloud.google.com/" target="_blank">Sign up here</a>)</li>
-                    <li>Billing account enabled (free tier available)</li>
-                    <li>Project with BigQuery and Cloud Storage APIs enabled</li>
+            <!-- Architecture Layers -->
+            <div class="section">
+                <h2>🔧 Architecture Layers</h2>
+                
+                <h3>Layer 1: Frontend</h3>
+                <div class="layer">
+                    <div class="layer-title">Next.js 16 (React + TypeScript + Tailwind)</div>
+                    <ul class="component-list">
+                        <li>MOGI Chatbot Interface</li>
+                        <li>Phone/Email Authentication</li>
+                        <li>Welcome Message with Personality Display</li>
+                        <li>Interactive Chat & Recommendations</li>
+                        <li>Recommendation Categories: Tourist Spots → Hotels → Restaurants → Beaches → Mountains → Resorts → Secret Spot</li>
+                        <li>Secret Spot Badge (Profile-based, unique)</li>
+                        <li>Secret Recommendations Page (<code>/secret-recommendations</code>)</li>
+                        <li>Scams & Danger Zones Safety Information</li>
+                        <li>Google Maps Integration with Precise Directions</li>
+                    </ul>
+                </div>
+                
+                <h3>Layer 2: Backend - API & Processing</h3>
+                <div class="layer">
+                    <div class="layer-title">FastAPI Microservices</div>
+                    <ul class="component-list">
+                        <li>Authentication & OTP Verification</li>
+                        <li>Personality Analysis Pipeline</li>
+                        <li>Chat & Recommendation Engine (LangChain)</li>
+                        <li>Comprehensive Recommendations Service (All Categories)</li>
+                        <li>Secret Spot Discovery (Profile-based, 1-2 unique items)</li>
+                        <li>Scams & Danger Zones Safety Data</li>
+                        <li>Precise Directions Generation (Google Maps)</li>
+                        <li><span class="highlight">InstantDB Recommendation Persistence</span></li>
+                        <li><span class="highlight">BigQuery Data Persistence</span></li>
+                        <li><span class="highlight">Background Retry Queue</span> (bigquery_retry_queue.py)</li>
+                        <li>RAG routes (contextual search)</li>
+                        <li>Chat: Make.com webhook (optional) or LangChain/OpenAI fallback</li>
+                    </ul>
+                </div>
+                
+                <h3>Layer 3: Data Storage</h3>
+                <div class="layer">
+                    <div class="layer-title">Google Cloud & Redis Services</div>
+                    <ul class="component-list">
+                        <li>Google BigQuery (User Profiles, Personality Data, Recommendation Scores)</li>
+                        <li>Google Cloud Storage (Images, Files)</li>
+                        <li>Redis Cloud (Session Cache, OTP Storage)</li>
+                        <li><span class="highlight">InstantDB (Real-time Recommendations per User)</span></li>
+                        <li><span class="highlight">In-Memory Cache (Personality Traits)</span></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- The Problem -->
+            <div class="section" id="bigquery">
+                <h2>❌ The BigQuery Streaming Buffer Problem</h2>
+                
+                <p><strong>Issue:</strong> When user profiles are created via streaming insert, BigQuery keeps them in a <span class="highlight">streaming buffer for 90+ minutes</span>. During this period, <span class="error-text">UPDATE or DELETE operations are NOT ALLOWED</span>.</p>
+                
+                <table>
+                    <tr>
+                        <th>Symptom</th>
+                        <th>What Happened</th>
+                        <th>Impact</th>
+                    </tr>
+                    <tr>
+                        <td>Backend shows analyzed traits</td>
+                        <td>Adventurous: 0.7, Social: 0.9</td>
+                        <td>✅ Analysis works</td>
+                    </tr>
+                    <tr>
+                        <td>Try to save to BigQuery</td>
+                        <td>UPDATE query fails</td>
+                        <td>❌ Error: "streaming buffer"</td>
+                    </tr>
+                    <tr>
+                        <td>BigQuery table still has defaults</td>
+                        <td>Adventurous: 0.5, Social: 0.5</td>
+                        <td>❌ Traits not saved</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend requests profile</td>
+                        <td>Gets 0.5, 0.5 from BigQuery</td>
+                        <td>❌ Shows wrong personality</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- The Solution -->
+            <div class="section">
+                <h2>✅ The Three-Layer Solution</h2>
+                
+                <h3>Layer 1: In-Memory Cache</h3>
+                <div class="layer">
+                    <div class="layer-title">File: backend/app/user_profile.py</div>
+                    <p><strong>Purpose:</strong> Store analyzed personality immediately when analysis completes. <code>get_profile()</code> returns from cache when DB has all defaults (0.5).</p>
+                    <div class="code-block"># When DB returns all 0.5, check cache:
+if all_defaults:
+    cached = self._get_cached_personality(user_id)
+    if cached:
+        return profile with cached personality  # Frontend gets correct traits immediately</div>
+                    <ul class="component-list">
+                        <li>Dictionary: <code>_personality_cache[user_id] = PersonalityTraits</code></li>
+                        <li>Set by <code>personality_pipeline</code> after LLM analysis</li>
+                        <li>Cleared after BigQuery successfully updates</li>
+                    </ul>
+                </div>
+                
+                <h3>Layer 2: Background Retry System</h3>
+                <div class="layer">
+                    <div class="layer-title">File: backend/app/bigquery_retry_queue.py</div>
+                    <p><strong>Purpose:</strong> Automatically retry BigQuery updates with exponential backoff. Started in <code>main.py</code> lifespan.</p>
+                    <div class="code-block"># Started on app startup (main.py lifespan):
+background_retry_task = start_background_retry_task()
+
+# Runs forever, every 2 minutes:
+async def background_retry_task():
+    while True:
+        await asyncio.sleep(120)  # Wait 2 min
+        pending = await retry_queue.get_pending_retries()
+        for user_id, traits in pending.items():
+            success = await bigquery_client.update_user_profile(user_id, traits)
+            if success:
+                await retry_queue.mark_success(user_id)</div>
+                    <ul class="component-list">
+                        <li>Runs every 2 minutes</li>
+                        <li>Exponential backoff: 2, 5, 10, 20, 30, 60 min</li>
+                        <li>Gives up after 6 hours or 12 attempts</li>
+                    </ul>
+                </div>
+                
+                <h3>Layer 3: Better SQL Statement</h3>
+                <div class="layer">
+                    <div class="layer-title">File: backend/app/bigquery_client.py</div>
+                    <p><strong>Purpose:</strong> Use MERGE instead of DELETE+UPDATE for better streaming buffer handling</p>
+                    <ul class="component-list">
+                        <li>MERGE handles both INSERT and UPDATE</li>
+                        <li>Better compatibility with streaming buffer</li>
+                        <li>Reduces failures during buffer period</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Data Flow Timeline -->
+            <div class="section">
+                <h2>📈 Complete Data Flow Timeline</h2>
+                
+                <div class="timeline">
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+0 seconds</div>
+                        <div><strong>User Registration</strong></div>
+                        <div>Profile created in BigQuery with default personality (0.5, 0.5...)</div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+0 seconds</div>
+                        <div><strong>Personality Analysis Starts</strong></div>
+                        <div>Background task begins Google search and LLM analysis</div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+5 seconds</div>
+                        <div><strong>Analysis Completes</strong></div>
+                        <div>Personality traits calculated: {adventurous: 0.7, social: 0.9...}</div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+5 seconds</div>
+                        <div><strong>Store in Cache</strong></div>
+                        <div><span class="success-text">✅ IMMEDIATE:</span> Traits stored in in-memory cache</div>
+                    </div>
+                    
+                    <div class="timeline-item warning">
+                        <div class="timeline-time">T+5 seconds</div>
+                        <div><strong>Try BigQuery Update</strong></div>
+                        <div><span class="error-text">❌ FAILS:</span> Error "streaming buffer not supported"</div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+5 seconds</div>
+                        <div><strong>Add to Retry Queue</strong></div>
+                        <div>Schedule first retry in 2 minutes</div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+10 seconds</div>
+                        <div><strong>Frontend Requests Profile</strong></div>
+                        <div>
+                            Backend logic:
+                            <br/>1. Query BigQuery → Gets 0.5, 0.5...
+                            <br/>2. Sees all defaults, check cache
+                            <br/>3. Cache has analyzed traits
+                            <br/><span class="success-text">✅ RETURN:</span> Correct personality from cache
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+45 seconds</div>
+                        <div><strong>Frontend Displays</strong></div>
+                        <div><span class="success-text">✅ "I see you're adventurous (70%) and social (90%)!"</span></div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+2 minutes</div>
+                        <div><strong>Background Retry #1</strong></div>
+                        <div><span class="warning-text">⚠️ FAILS:</span> Streaming buffer still active</div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+5 minutes</div>
+                        <div><strong>Background Retry #2</strong></div>
+                        <div><span class="warning-text">⚠️ FAILS:</span> Streaming buffer still active</div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-time">T+10, T+20, T+30, T+60 min</div>
+                        <div><strong>More Retries (Exponential Backoff)</strong></div>
+                        <div>Keep retrying with increasing delays</div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+90 minutes+</div>
+                        <div><strong>Streaming Buffer Expires</strong></div>
+                        <div>BigQuery now accepts UPDATE operations</div>
+                    </div>
+                    
+                    <div class="timeline-item success">
+                        <div class="timeline-time">T+92 minutes</div>
+                        <div><strong>Background Retry Succeeds</strong></div>
+                        <div>
+                            <span class="success-text">✅ BigQuery Updated:</span> Traits now saved permanently
+                            <br/>Remove from retry queue
+                            <br/>Remove from cache (no longer needed)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Code Structure -->
+            <div class="section">
+                <h2>💻 Code Implementation</h2>
+                
+                <h3>Files Modified/Created</h3>
+                <table>
+                    <tr>
+                        <th>File</th>
+                        <th>Change</th>
+                        <th>Purpose</th>
+                    </tr>
+                    <tr>
+                        <td>backend/app/main.py</td>
+                        <td>MODIFIED</td>
+                        <td>Starts background retry task on app startup</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/personality_pipeline.py</td>
+                        <td>MODIFIED</td>
+                        <td>Uses retry queue when BigQuery update fails</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/bigquery_client.py</td>
+                        <td>UPDATED</td>
+                        <td>Uses MERGE statement for better handling</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/user_profile.py</td>
+                        <td>ENHANCED</td>
+                        <td>Has cache for fallback personality</td>
+                    </tr>
+                    <tr style="background: #fff3cd;">
+                        <td><strong>backend/app/bigquery_retry_queue.py</strong></td>
+                        <td><strong>NEW</strong></td>
+                        <td><strong>Background retry system</strong></td>
+                    </tr>
+                </table>
+                
+                <h3>Key Functions</h3>
+                <div class="feature-box">
+                    <div class="feature-card">
+                        <h4>_set_cached_personality()</h4>
+                        <p>Stores analyzed personality in memory cache immediately</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>_get_cached_personality()</h4>
+                        <p>Retrieves personality from cache when BigQuery has defaults</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>add_retry()</h4>
+                        <p>Adds failed update to retry queue with 2-minute initial delay</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>background_retry_task()</h4>
+                        <p>Continuously retries with exponential backoff (2→60 min)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Expected Behavior -->
+            <div class="section">
+                <h2>🎯 Expected Behavior After Fix</h2>
+                
+                <h3>Scenario 1: BigQuery Accepts Immediately</h3>
+                <div class="code-block">
+✅ Personality Analysis Complete!
+   Adventurous: 0.70
+   Social: 0.90
+
+✅ Successfully updated user profile using MERGE
+   Saved Traits: {'adventurous': 0.7, 'social': 0.9}
+                </div>
+                <p><strong>Result:</strong> Personality displays immediately, BigQuery updated</p>
+                
+                <h3>Scenario 2: Streaming Buffer Active (First 90 minutes)</h3>
+                <div class="code-block">
+✅ Personality Analysis Complete!
+   Adventurous: 0.70
+
+⚠️  Still hitting streaming buffer after 30 seconds
+❌ BigQuery update_user_profile returned False
+
+📋 Added to retry queue for background retry
+   Frontend will show the correct personality NOW
+
+[Backend keeps retrying every 2 minutes...]
+                </div>
+                <p><strong>Result:</strong> Frontend shows from cache immediately, backend retries</p>
+                
+                <h3>Scenario 3: Background Retry Succeeds</h3>
+                <div class="code-block">
+🔄 Retrying BigQuery updates for 1 users...
+🔄 Retrying update for uuid-123
+
+✅ Successfully retried update for uuid-123
+✅ Removed uuid-123 from retry queue after 5 attempts
+                </div>
+                <p><strong>Result:</strong> BigQuery finally updated, cache cleaned up</p>
+            </div>
+            
+            <!-- How Data Flows -->
+            <div class="section">
+                <h2>🔀 How Data Flows Through The System</h2>
+                
+                <h3>User Registration Flow</h3>
+                <div class="diagram">
+User (Frontend)
+    │
+    ├─→ POST /api/auth/send-otp-phone
+    │      └─→ Generate OTP, store in Redis
+    │
+    ├─→ POST /api/auth/verify-otp-phone
+    │      ├─→ Create profile in BigQuery (STREAMING)
+    │      └─→ Start async personality analysis
+    │
+    └─→ Profile created with defaults (0.5, 0.5, 0.5...)
+           Status: In streaming buffer (90+ minutes locked)
+                </div>
+                
+                <h3>Personality Analysis Flow</h3>
+                <div class="diagram">
+Background Task (async)
+    │
+    ├─→ Search Google: "User Name"
+    │
+    ├─→ Analyze with LLM
+    │      Traits: {adventurous: 0.7, social: 0.9}
+    │
+    ├─→ Store in CACHE immediately ✅
+    │
+    ├─→ Try BigQuery MERGE UPDATE
+    │      ├─→ SUCCESS: Clear cache, done
+    │      └─→ FAILS: Add to retry queue, keep cache
+    │
+    └─→ Background retry every 2 minutes
+           Eventually succeeds when buffer expires
+                </div>
+                
+                <h3>Recommendation Generation Flow</h3>
+                <div class="diagram">
+User Requests Recommendations
+    │
+    ├─→ Load User Profile & Personality
+    │
+    ├─→ Generate by Category:
+    │      ├─→ Tourist Spots (7 items)
+    │      ├─→ Hotels (5 items)
+    │      ├─→ Restaurants (7 items)
+    │      ├─→ Beaches (5 items)
+    │      ├─→ Mountains (5 items)
+    │      ├─→ Resorts (5 items)
+    │      ├─→ Secret Spot (1-2 unique items, profile-based)
+    │      └─→ Scams & Danger Zones (Safety info)
+    │
+    ├─→ Format Each Recommendation:
+    │      ├─→ Add Google Maps link
+    │      ├─→ Add precise directions link
+    │      ├─→ Add website/booking links
+    │      └─→ Calculate match score
+    │
+    ├─→ Save ALL to InstantDB ✅
+    │      Collection: user_recommendations
+    │      Key: user_id
+    │
+    └─→ Return to Frontend
+           Displayed in order: Tourist Spots → Hotels → Restaurants → ...
+           Secret Spot shown LAST (unique, profile-based)
+                </div>
+                
+                <h3>Frontend Request Flow</h3>
+                <div class="diagram">
+Frontend (Chat Page)
+    │
+    ├─→ GET /api/chat/welcome
+    │
+    ├─→ Backend fetches profile
+    │      ├─→ Query BigQuery
+    │      ├─→ If all 0.5 (defaults): Check cache
+    │      └─→ Return personality (from cache or BQ)
+    │
+    └─→ Display personality ✅
+           "I see you're adventurous (70%) and social (90%)!"
+                </div>
+            </div>
+            
+            <!-- Comparison -->
+            <div class="section">
+                <h2>📊 Before vs After Comparison</h2>
+                
+                <table>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Before Fix ❌</th>
+                        <th>After Fix ✅</th>
+                    </tr>
+                    <tr>
+                        <td>Frontend shows personality</td>
+                        <td>"We're still learning..."</td>
+                        <td>"I'm adventurous (70%)"</td>
+                    </tr>
+                    <tr>
+                        <td>Data visibility</td>
+                        <td>Never (all 0.5)</td>
+                        <td>Immediately from cache</td>
+                    </tr>
+                    <tr>
+                        <td>BigQuery persistence</td>
+                        <td>Never saved</td>
+                        <td>After ~90 minutes</td>
+                    </tr>
+                    <tr>
+                        <td>Manual retry needed</td>
+                        <td>Yes ❌</td>
+                        <td>No, automatic ✅</td>
+                    </tr>
+                    <tr>
+                        <td>User experience</td>
+                        <td>Confusing ❌</td>
+                        <td>Seamless ✅</td>
+                    </tr>
+                    <tr>
+                        <td>System reliability</td>
+                        <td>Fails ❌</td>
+                        <td>Self-healing ✅</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Key Insight -->
+            <div class="section">
+                <h2>💡 Key Insight: Why This Works</h2>
+                
+                <p>BigQuery's streaming buffer is <strong>NOT a bug</strong> — it's a design feature that ensures:</p>
+                <ul class="component-list">
+                    <li>Data consistency</li>
+                    <li>Performance optimization</li>
+                    <li>Transaction safety</li>
                 </ul>
+                
+                <p style="margin-top: 20px;">Our solution <strong>doesn't try to bypass it</strong>. Instead, we:</p>
+                <ul class="component-list">
+                    <li>Accept the limitation exists</li>
+                    <li>Use cache for immediate availability</li>
+                    <li>Retry when buffer expires</li>
+                    <li>Ensure data eventually persists</li>
+                </ul>
+                
+                <p style="margin-top: 20px;"><strong>This is the industry-standard pattern</strong> used by AWS, Google Cloud, and Microsoft Azure for handling streaming data inserts.</p>
             </div>
-
-            <div class="flow-box" style="margin-top: 30px;">
-                <h3><span class="step-number">1</span>Create Google Cloud Project</h3>
-                <div class="explanation">
-                    <strong>Steps:</strong>
-                    <ol style="margin-top: 10px; padding-left: 25px; line-height: 2;">
-                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
-                        <li>Click project dropdown → <strong>"New Project"</strong></li>
-                        <li>Enter project name: <code>bacolod-tourist</code></li>
-                        <li>Note your <strong>Project ID</strong> (e.g., <code>gen-lang-client-0542256476</code>)</li>
-                        <li>Click <strong>"Create"</strong></li>
-                    </ol>
-                </div>
-            </div>
-
-            <div class="flow-box">
-                <h3><span class="step-number">2</span>Enable Required APIs</h3>
-                <div class="explanation">
-                    <strong>Enable these APIs:</strong>
-                    <ol style="margin-top: 10px; padding-left: 25px; line-height: 2;">
-                        <li>Go to <a href="https://console.cloud.google.com/apis/library" target="_blank">APIs & Services > Library</a></li>
-                        <li><strong>BigQuery API</strong> → Search → Click → Enable</li>
-                        <li><strong>Cloud Storage API</strong> → Search → Click → Enable</li>
-                    </ol>
-                </div>
-            </div>
-
-            <div class="flow-box">
-                <h3><span class="step-number">3</span>Create Service Account</h3>
-                <div class="explanation">
-                    <strong>Steps:</strong>
-                    <ol style="margin-top: 10px; padding-left: 25px; line-height: 2;">
-                        <li>Go to <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank">IAM & Admin > Service Accounts</a></li>
-                        <li>Click <strong>"Create Service Account"</strong></li>
-                        <li>Enter name: <code>bacolod-tourist-service</code></li>
-                        <li>Click <strong>"Create and Continue"</strong></li>
-                        <li>Grant roles:
-                            <ul style="margin-top: 5px; padding-left: 20px;">
-                                <li><strong>BigQuery Admin</strong> (or BigQuery Data Editor + BigQuery Job User)</li>
-                                <li><strong>Storage Admin</strong> (or Storage Object Admin)</li>
-                            </ul>
-                        </li>
-                        <li>Click <strong>"Continue"</strong> → <strong>"Done"</strong></li>
-                    </ol>
-                </div>
-            </div>
-
-            <div class="flow-box">
-                <h3><span class="step-number">4</span>Create and Download Service Account Key</h3>
-                <div class="explanation">
-                    <strong>Steps:</strong>
-                    <ol style="margin-top: 10px; padding-left: 25px; line-height: 2;">
-                        <li>Click on the service account you created</li>
-                        <li>Go to <strong>"Keys"</strong> tab</li>
-                        <li>Click <strong>"Add Key"</strong> → <strong>"Create new key"</strong></li>
-                        <li>Select <strong>JSON</strong> format</li>
-                        <li>Click <strong>"Create"</strong> - Downloads JSON file</li>
-                        <li>Save file in project: <code>backend/gen-lang-client-0542256476-399081ed3dc7.json</code></li>
-                        <li style="color: #dc3545;"><strong>⚠️ Important:</strong> Add to <code>.gitignore</code> to keep credentials secure!</li>
-                    </ol>
-                </div>
-            </div>
-
-            <div class="flow-box">
-                <h3><span class="step-number">5</span>Create BigQuery Dataset</h3>
-                <div class="explanation">
-                    <strong>Steps:</strong>
-                    <ol style="margin-top: 10px; padding-left: 25px; line-height: 2;">
-                        <li>Go to <a href="https://console.cloud.google.com/bigquery" target="_blank">BigQuery Console</a></li>
-                        <li>Click your <strong>Project ID</strong> in left sidebar</li>
-                        <li>Click <strong>"Create Dataset"</strong> (or ⋮ menu → Create dataset)</li>
-                        <li>Enter <strong>Dataset ID</strong>: <code>bacolod_tourist</code> or <code>Inasal_app</code></li>
-                        <li>Select <strong>Location</strong>:
-                            <ul style="margin-top: 5px; padding-left: 20px;">
-                                <li><strong>Multi-region:</strong> US (multiple regions in United States)</li>
-                                <li><strong>OR Region:</strong> us-central1</li>
-                            </ul>
-                        </li>
-                        <li>Click <strong>"Create dataset"</strong></li>
-                        <li><strong>Note:</strong> Tables are created automatically on first connection</li>
-                    </ol>
-                </div>
-                <div class="code" style="margin-top: 15px;">
-<span class="comment">// Tables created automatically:</span>
-- user_profiles          <span class="comment">// User profiles with personality traits</span>
-- interaction_logs       <span class="comment">// User interaction history</span>
-- recommendation_scores  <span class="comment">// Recommendation match scores</span>
-- chat_logs              <span class="comment">// Chat messages and responses</span>
-                </div>
-            </div>
-
-            <div class="flow-box">
-                <h3><span class="step-number">6</span>Create Cloud Storage Bucket</h3>
-                <div class="explanation">
-                    <strong>Steps:</strong>
-                    <ol style="margin-top: 10px; padding-left: 25px; line-height: 2;">
-                        <li>Go to <a href="https://console.cloud.google.com/storage/buckets" target="_blank">Cloud Storage Console</a></li>
-                        <li>Click <strong>"Create Bucket"</strong></li>
-                        <li>Enter <strong>Name</strong>: <code>bacolod-tourist-storage</code> (must be globally unique)</li>
-                        <li>Select <strong>Location</strong>:
-                            <ul style="margin-top: 5px; padding-left: 20px;">
-                                <li><strong>Multi-region:</strong> US (multiple regions)</li>
-                                <li><strong>OR Region:</strong> us-central1</li>
-                            </ul>
-                        </li>
-                        <li><strong>Storage class:</strong> Standard</li>
-                        <li><strong>Access control:</strong> Uniform</li>
-                        <li>Click <strong>"Create"</strong></li>
-                    </ol>
-                </div>
-            </div>
-
-            <div class="flow-box">
-                <h3><span class="step-number">7</span>Configure Environment Variables</h3>
-                <div class="explanation">
-                    <strong>Update <code>backend/.env</code> file:</strong>
-                </div>
-                <div class="code">
-<span class="comment"># Google Cloud Platform Configuration</span>
-GCP_PROJECT_ID=gen-lang-client-0542256476
-GCP_CREDENTIALS_PATH=backend/gen-lang-client-0542256476-399081ed3dc7.json
-BIGQUERY_DATASET_ID=Inasal_app
-GCS_BUCKET_NAME=inasal-app-storage
-GCS_BUCKET_LOCATION=us  <span class="comment">// "us" for multi-region, "us-central1" for region</span>
-                </div>
-            </div>
-
-            <div class="flow-box" style="background: #d1ecf1; border-left-color: #0c5460;">
-                <h3><span class="step-number">8</span>Verify Setup</h3>
-                <div class="explanation">
-                    <strong>Test connections:</strong>
-                </div>
-                <div class="code">
-<span class="comment"># Test BigQuery connection</span>
+            
+            <!-- Testing -->
+            <div class="section">
+                <h2>🧪 How to Test the Solution</h2>
+                
+                <h3>Step 1: Start Backend</h3>
+                <div class="code-block">
 cd backend
-poetry shell
-poetry run python -c <span class="string">"from app.bigquery_client import bigquery_client; import asyncio; asyncio.run(bigquery_client.connect()); print('✅ BigQuery connected!')"</span>
-
-<span class="comment"># Test Cloud Storage connection</span>
-poetry run python -c <span class="string">"from app.storage_client import storage_client; import asyncio; asyncio.run(storage_client.connect()); print('✅ Cloud Storage connected!')"</span>
-
-<span class="comment"># Start backend server</span>
 poetry run uvicorn app.main:app --reload --port 8000
-
-<span class="comment">// Expected console output:</span>
-✅ Connected to BigQuery: gen-lang-client-0542256476.Inasal_app
-✅ Connected to Cloud Storage: inasal-app-storage
-✅ Table user_profiles ready
-✅ Table interaction_logs ready
-✅ Table recommendation_scores ready
-✅ Table chat_logs ready
                 </div>
-            </div>
-
-            <div class="highlight-box" style="background: #f8d7da; border-left: 6px solid #dc3545; margin-top: 30px;">
-                <h3 style="color: #721c24; margin-bottom: 15px;">🔧 Troubleshooting</h3>
-                <ul style="line-height: 2;">
-                    <li><strong>"Permission denied"</strong> → Verify service account has BigQuery Admin and Storage Admin roles</li>
-                    <li><strong>"Dataset not found"</strong> → Check <code>BIGQUERY_DATASET_ID</code> matches exact Dataset ID</li>
-                    <li><strong>"Bucket not found"</strong> → Verify <code>GCS_BUCKET_NAME</code> matches exact bucket name (case-sensitive)</li>
-                    <li><strong>"Credentials file not found"</strong> → Check <code>GCP_CREDENTIALS_PATH</code> is correct relative to project root</li>
+                
+                <h3>Step 2: Watch for Startup</h3>
+                <div class="code-block">
+✅ Background BigQuery retry task started
+                </div>
+                
+                <h3>Step 3: Register New User</h3>
+                <p>Go to frontend, login with phone and OTP</p>
+                
+                <h3>Step 4: Navigate to Chat</h3>
+                <p>Go to chat page immediately after login</p>
+                
+                <h3>Step 5: Verify Personality</h3>
+                <p><span class="success-text">✅ Should see:</span> "I see you're adventurous (70%) and social (90%)..."</p>
+                <p><span class="error-text">❌ Should NOT see:</span> "We're still learning about your interests"</p>
+                
+                <h3>Step 6: Check Backend Logs</h3>
+                <p>Look for either:</p>
+                <ul class="component-list">
+                    <li><span class="success-text">✅ "Successfully updated user profile"</span> — BigQuery accepted immediately</li>
+                    <li><span class="warning-text">⚠️ "Added to retry queue"</span> — Will save in background</li>
                 </ul>
             </div>
-
-            <div class="highlight-box" style="background: #d4edda; border-left: 6px solid #28a745; margin-top: 20px;">
-                <h3 style="color: #155724; margin-bottom: 15px;">💰 Cost Considerations</h3>
-                <ul style="line-height: 2;">
-                    <li><strong>BigQuery Free Tier:</strong> 10 GB storage + 1 TB queries per month</li>
-                    <li><strong>Cloud Storage Free Tier:</strong> 5 GB storage per month</li>
-                    <li>Monitor usage in <a href="https://console.cloud.google.com/billing" target="_blank">GCP Billing Console</a></li>
-                </ul>
+            
+            <!-- Files to Review -->
+            <div class="section">
+                <h2>📁 Files to Review</h2>
+                
+                <table>
+                    <tr>
+                        <th>File Path</th>
+                        <th>Key Section</th>
+                        <th>What to Look For</th>
+                    </tr>
+                    <tr>
+                        <td>backend/app/main.py</td>
+                        <td>lifespan()</td>
+                        <td>start_background_retry_task()</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/bigquery_retry_queue.py</td>
+                        <td>background_retry_task()</td>
+                        <td>Retry logic with backoff</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/user_profile.py</td>
+                        <td>_personality_cache</td>
+                        <td>Cache storage and fallback logic</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/personality_pipeline.py</td>
+                        <td>update_personality() call</td>
+                        <td>await retry_queue.add_retry()</td>
+                    </tr>
+                    <tr>
+                        <td>backend/app/bigquery_client.py</td>
+                        <td>update_user_profile()</td>
+                        <td>MERGE statement</td>
+                    </tr>
+                </table>
             </div>
+            
         </div>
-
-        <!-- Summary Section -->
-        <div class="section">
-            <h2 class="section-title">📊 Complete Flow Summary</h2>
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color auth"></div>
-                    <span><strong>Authentication:</strong> Login → OTP → Profile Creation → Background Analysis</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color chat"></div>
-                    <span><strong>Chat Flow:</strong> Welcome Message → User Messages → MOGI Responses</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color recommendation"></div>
-                    <span><strong>Personality:</strong> Social Scraping → LLM Analysis → Strapi Storage</span>
-                </div>
-            </div>
-            <div class="highlight-box">
-                <h3>🎯 Complete User Journey</h3>
-                <ol style="line-height: 2.5; padding-left: 25px; font-size: 1.05em;">
-                    <li><strong>User visits</strong> <code>frontend/src/app/page.tsx</code> → Landing page</li>
-                    <li><strong>User clicks login</strong> → Redirects to <code>frontend/src/app/login/page.tsx</code></li>
-                    <li><strong>User enters phone</strong> → <code>frontend/src/components/PhoneInput.tsx</code> formats input</li>
-                    <li><strong>Frontend sends OTP</strong> → <code>frontend/src/lib/api.ts</code> → <code>POST /api/auth/send-otp-phone</code></li>
-                    <li><strong>Backend stores OTP</strong> → <code>backend/app/routes/auth_routes.py</code> → Redis</li>
-                    <li><strong>User verifies OTP</strong> → <code>POST /api/auth/verify-otp-phone</code></li>
-                    <li><strong>Backend creates profile</strong> → <code>backend/app/user_profile.py</code> → Google BigQuery</li>
-                    <li><strong>Background job starts</strong> → <code>backend/app/personality_pipeline.py</code> (async)</li>
-                    <li><strong>Social media scraping</strong> → <code>backend/app/scrapers/social_media_spider.py</code> (Scrapy + Bright Data Proxy)</li>
-                    <li><strong>Personality analysis</strong> → <code>backend/app/personality_analyzer.py</code> (OpenAI GPT)</li>
-                    <li><strong>Personality stored</strong> → <code>backend/app/bigquery_client.py</code> → BigQuery user_profiles table</li>
-                    <li><strong>User redirected</strong> → <code>frontend/src/app/chat/page.tsx</code></li>
-                    <li><strong>Welcome loads</strong> → <code>frontend/src/components/MOGIChatbot.tsx</code> → <code>GET /api/chat/welcome</code></li>
-                    <li><strong>Backend generates welcome</strong> → <code>backend/app/welcome_message_service.py</code></li>
-                    <li><strong>Backend fetches recommendations</strong> → <code>backend/app/comprehensive_recommendations.py</code></li>
-                    <li><strong>Recommendation scores saved</strong> → <code>backend/app/bigquery_client.py</code> → BigQuery recommendation_scores table</li>
-                    <li><strong>Frontend displays welcome</strong> → <code>frontend/src/components/WelcomeMessage.tsx</code></li>
-                    <li><strong>User chats</strong> → <code>frontend/src/components/MOGIChatbot.tsx</code> → <code>POST /api/chat/</code></li>
-                    <li><strong>Backend processes</strong> → <code>backend/app/chat_agent.py</code> → <code>backend/app/mogi_persona.py</code></li>
-                    <li><strong>Chat log saved</strong> → <code>backend/app/bigquery_client.py</code> → BigQuery chat_logs table</li>
-                    <li><strong>MOGI responds</strong> → OpenAI GPT → Personality-aware response</li>
-                </ol>
-            </div>
-            <div style="margin-top: 25px; padding: 25px; background: #e7f3ff; border-radius: 10px;">
-                <h3 style="color: #007bff; margin-bottom: 20px; font-size: 1.5em;">🔑 Key Concepts:</h3>
-                <ul style="list-style: none; padding-left: 0; font-size: 1.05em; line-height: 2;">
-                    <li>✅ <strong>Phone Authentication</strong> - Philippine format (+63 9XX XXX XXXX) with OTP stored in Redis</li>
-                    <li>✅ <strong>Background Processing</strong> - Personality analysis runs async, doesn't block login</li>
-                    <li>✅ <strong>Social Media Scraping</strong> - Scrapy + Bright Data Residential Proxy for automated profile extraction</li>
-                    <li>✅ <strong>AI-Powered Analysis</strong> - OpenAI GPT for personality inference and chat responses</li>
-                    <li>✅ <strong>Personality-Aware Chat</strong> - Every MOGI response considers user's personality scores</li>
-                    <li>✅ <strong>Comprehensive Recommendations</strong> - All categories fetched and filtered by personality match</li>
-                    <li>✅ <strong>Recommendation Score Tracking</strong> - Every recommendation score saved to BigQuery for analytics</li>
-                    <li>✅ <strong>Chat Log Storage</strong> - All chat messages and responses saved to BigQuery with personality context</li>
-                    <li>✅ <strong>Rich UI Components</strong> - Clickable recommendation cards with links to maps, booking, websites</li>
-                    <li>✅ <strong>Welcome Message</strong> - Automatically loads on chat page, includes personality summary</li>
-                    <li>✅ <strong>MOGI Persona</strong> - System prompt dynamically built with user's personality context</li>
-                    <li>✅ <strong>Conversation Memory</strong> - Stored in Redis, maintains context across chat messages</li>
-                    <li>✅ <strong>Google BigQuery Storage</strong> - User profiles, personality traits, recommendation scores, chat logs, and interaction history stored in BigQuery</li>
-                    <li>✅ <strong>Google Cloud Storage</strong> - Files and images stored in Cloud Storage buckets</li>
-                    <li>✅ <strong>Automatic Table Creation</strong> - BigQuery tables created automatically on first connection</li>
-                    <li>✅ <strong>Data Persistence</strong> - All user data, recommendations, and chat logs persisted in BigQuery for analytics</li>
-                </ul>
-            </div>
-        </div>
+        
+        <footer>
+            <p>Bacolod Tourist - MOGI Chatbot System Architecture</p>
+            <p>Built with FastAPI, Next.js, and Google Cloud | Last Updated: February 2026</p>
+        </footer>
     </div>
 </body>
 </html>

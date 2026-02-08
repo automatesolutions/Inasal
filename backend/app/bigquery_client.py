@@ -187,11 +187,21 @@ class BigQueryClient:
         """Create a new user profile"""
         if not self._is_available():
             return False
+        
+        # BigQuery requires email, but InstantDB doesn't store it
+        # Use phone-based email as placeholder for BigQuery analytics
+        email = profile_data.get("email")
+        if not email and profile_data.get("phone_number"):
+            email = f"{profile_data.get('phone_number')}@phone.local"
+        elif not email:
+            # Skip BigQuery if no email and no phone
+            logger.warning("⚠️  Skipping BigQuery create: no email or phone_number")
+            return False
             
         # Prepare data for BigQuery
         row_data = {
             "user_id": profile_data.get("user_id"),
-            "email": profile_data.get("email"),
+            "email": email,
             "phone_number": profile_data.get("phone_number"),
             "first_name": profile_data.get("first_name"),
             "last_name": profile_data.get("last_name"),
@@ -205,8 +215,8 @@ class BigQueryClient:
             "preferences": json.dumps(profile_data.get("preferences", {})) if profile_data.get("preferences") else None,
             "social_media_data": json.dumps(profile_data.get("social_media_data", {})) if profile_data.get("social_media_data") else None,
             "travel_history": json.dumps(profile_data.get("travel_history", [])) if profile_data.get("travel_history") else None,
-            "created_at": profile_data.get("created_at", datetime.utcnow()),
-            "updated_at": profile_data.get("updated_at", datetime.utcnow()),
+            "created_at": (profile_data.get("created_at") or datetime.utcnow()).isoformat() if isinstance(profile_data.get("created_at"), (datetime, type(None))) else str(profile_data.get("created_at")),
+            "updated_at": (profile_data.get("updated_at") or datetime.utcnow()).isoformat() if isinstance(profile_data.get("updated_at"), (datetime, type(None))) else str(profile_data.get("updated_at")),
         }
         
         table_id = f"{self.project_id}.{self.dataset_id}.user_profiles"
@@ -218,62 +228,101 @@ class BigQueryClient:
         return True
     
     async def update_user_profile(self, user_id: str, update_data: Dict[str, Any]) -> bool:
-        """Update user profile"""
+        """Update user profile using MERGE to avoid streaming buffer issues
+        
+        MERGE is better at handling streaming buffer conflicts than UPDATE/DELETE
+        """
         if not self._is_available():
             return False
-            
-        # Build SET clause dynamically
-        set_clauses = []
-        query_params = [bigquery.ScalarQueryParameter("user_id", "STRING", user_id)]
         
-        param_index = 1
-        for key, value in update_data.items():
-            if key == "personality" and isinstance(value, dict):
-                # Flatten personality traits
-                for trait, score in value.items():
-                    param_name = f"param_{param_index}"
-                    set_clauses.append(f"{trait} = @{param_name}")
-                    query_params.append(bigquery.ScalarQueryParameter(param_name, "FLOAT64", float(score)))
-                    param_index += 1
-                continue
-            elif key in ["preferences", "social_media_data", "travel_history"]:
-                value = json.dumps(value) if value else None
-            
-            param_name = f"param_{param_index}"
-            set_clauses.append(f"{key} = @{param_name}")
-            
-            if isinstance(value, datetime):
-                query_params.append(bigquery.ScalarQueryParameter(param_name, "TIMESTAMP", value))
-            elif isinstance(value, (int, float)):
-                query_params.append(bigquery.ScalarQueryParameter(param_name, "FLOAT64", value))
-            elif value is None:
-                set_clauses.pop()  # Remove the clause if value is None
-                param_index -= 1
+        # Get existing profile to retrieve email (required by BigQuery schema)
+        existing_profile = await self.get_user_profile(user_id)
+        email = None
+        if existing_profile:
+            email = existing_profile.get("email")
+        
+        # If no existing profile and no email in update_data, use phone-based placeholder
+        if not email:
+            # Try to get phone from update_data or existing profile
+            phone = update_data.get("phone_number") or (existing_profile.get("phone_number") if existing_profile else None)
+            if phone:
+                email = f"{phone}@phone.local"
             else:
-                query_params.append(bigquery.ScalarQueryParameter(param_name, "STRING", str(value)))
-            
-            param_index += 1
+                # Skip BigQuery update if we can't determine email
+                logger.warning(f"⚠️  Skipping BigQuery update for {user_id}: no email available")
+                return False
         
-        # Add updated_at
-        set_clauses.append("updated_at = CURRENT_TIMESTAMP()")
+        # Prepare personality traits
+        personality_fields = ["adventurous", "cultural", "foodie", "nature_lover", "history_buff", "social"]
+        update_values = {}
         
-        if not set_clauses:
-            return False
+        # Extract personality traits
+        if "personality" in update_data and isinstance(update_data["personality"], dict):
+            for trait in personality_fields:
+                update_values[trait] = float(update_data["personality"].get(trait, 0.5))
+        else:
+            for trait in personality_fields:
+                update_values[trait] = float(update_data.get(trait, 0.5))
         
-        query = f"""
-        UPDATE `{self.project_id}.{self.dataset_id}.user_profiles`
-        SET {', '.join(set_clauses)}
-        WHERE user_id = @user_id
+        # Extract other update fields (exclude InstantDB-only fields)
+        for key, value in update_data.items():
+            if key not in ["personality", "characteristics_summary", "source_links"] + personality_fields:
+                if key in ["preferences", "social_media_data", "travel_history"]:
+                    update_values[key] = json.dumps(value) if value else (json.dumps([]) if key == "travel_history" else None)
+                else:
+                    update_values[key] = value
+        
+        # Ensure email is included for BigQuery (required field)
+        update_values["email"] = email
+        update_values["updated_at"] = datetime.utcnow().isoformat()
+        
+        # Build SET clause for MERGE
+        set_clause_parts = []
+        params = [bigquery.ScalarQueryParameter("user_id", "STRING", user_id)]
+        
+        for i, (key, value) in enumerate(update_values.items()):
+            param_name = f"val_{i}"
+            if isinstance(value, (int, float)):
+                params.append(bigquery.ScalarQueryParameter(param_name, "FLOAT64", value))
+            else:
+                params.append(bigquery.ScalarQueryParameter(param_name, "STRING", value))
+            set_clause_parts.append(f"t.{key} = @{param_name}")
+        
+        set_clause = ",\n    ".join(set_clause_parts)
+        
+        # Use MERGE instead of DELETE+UPDATE to handle streaming buffer better
+        # Build INSERT column list and values (email must be included)
+        insert_columns = ["user_id"] + list(update_values.keys())
+        insert_values = ["@user_id"] + [f"@val_{i}" for i in range(len(update_values))]
+        
+        merge_query = f"""
+        MERGE `{self.project_id}.{self.dataset_id}.user_profiles` t
+        USING (SELECT @user_id as user_id) s
+        ON t.user_id = s.user_id
+        WHEN MATCHED THEN
+          UPDATE SET
+            {set_clause}
+        WHEN NOT MATCHED THEN
+          INSERT ({', '.join(insert_columns)})
+          VALUES ({', '.join(insert_values)})
         """
         
         try:
-            job_config = bigquery.QueryJobConfig(query_parameters=query_params)
-            query_job = self.client.query(query, job_config=job_config)
-            query_job.result()  # Wait for completion
+            job_config = bigquery.QueryJobConfig(query_parameters=params)
+            query_job = self.client.query(merge_query, job_config=job_config)
+            query_job.result(timeout=30)  # 30 second timeout
             
-            return query_job.num_dml_affected_rows > 0
+            logger.info(f"✅ Successfully updated user profile {user_id} using MERGE")
+            return True
+            
         except Exception as e:
-            logger.error(f"Error updating user profile: {e}")
+            error_str = str(e).lower()
+            logger.error(f"Error updating user profile with MERGE: {e}")
+            if "streaming buffer" in error_str:
+                logger.warning(f"⚠️  Still hitting streaming buffer after 30 seconds. This is a BigQuery limitation.")
+                logger.info(f"💾 Personality was analyzed and is stored in cache for immediate use")
+                logger.info(f"📌 BigQuery will accept updates after streaming buffer clears (~90+ minutes)")
+                return False  # Return False but personality is in cache
             return False
     
     async def insert_interaction_log(self, log_data: Dict[str, Any]) -> bool:
@@ -287,7 +336,7 @@ class BigQueryClient:
             "interaction_type": log_data.get("interaction_type"),
             "content": json.dumps(log_data.get("content", {})) if log_data.get("content") else None,
             "metadata": json.dumps(log_data.get("metadata", {})) if log_data.get("metadata") else None,
-            "timestamp": log_data.get("timestamp", datetime.utcnow()),
+            "timestamp": (log_data.get("timestamp") or datetime.utcnow()).isoformat() if isinstance(log_data.get("timestamp"), (datetime, type(None))) else str(log_data.get("timestamp", datetime.utcnow())),
         }
         
         table_id = f"{self.project_id}.{self.dataset_id}.interaction_logs"
@@ -359,7 +408,7 @@ class BigQueryClient:
             "match_score": match_score,
             "personality_match_scores": json.dumps(personality_match_scores),
             "recommendation_data": json.dumps(recommendation_data),
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.utcnow().isoformat(),
         }
         
         table_id = f"{self.project_id}.{self.dataset_id}.recommendation_scores"
@@ -389,7 +438,7 @@ class BigQueryClient:
             "response": response,
             "message_type": message_type,
             "metadata": json.dumps(metadata or {}),
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.utcnow().isoformat(),
         }
         
         table_id = f"{self.project_id}.{self.dataset_id}.chat_logs"

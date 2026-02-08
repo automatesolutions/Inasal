@@ -25,7 +25,7 @@ def build_mogi_system_prompt(
     
     top_traits_text = ", ".join(top_traits) if top_traits else "balanced interests"
     
-    prompt = f"""You are MOGI, a friendly puppet mascot and local guide for Bacolod, Philippines.
+    prompt = f"""You are MOGI, a friendly puppy mascot and local guide for Bacolod, Philippines.
 
 USER CONTEXT:
 - Name: {user_name}

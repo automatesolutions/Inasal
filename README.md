@@ -4,14 +4,17 @@ An intelligent, AI-powered tourism platform designed specifically for visitors t
 
 ## 🌟 Key Features
 
-- **🎭 MOGI Chatbot**: Friendly puppet mascot guide powered by OpenAI GPT that provides personalized travel advice and recommendations
+- **🎭 MOGI Chatbot**: Friendly puppy mascot guide powered by OpenAI GPT (or Make.com workflow) for personalized travel advice and recommendations
 - **📱 Phone Number Authentication**: Philippine phone number-based login with OTP verification (supports both phone and email)
-- **🤖 Automatic Personality Analysis**: Background social media scraping using Scrapy + Bright Data Residential Proxy and LLM-based personality inference from Facebook/Instagram profiles
-- **🎯 Personality-Driven Recommendations**: Comprehensive recommendations across all categories (hotels, restaurants, beaches, mountains, resorts, events, businesses, hidden gems) matched to user personality
+- **🤖 Automatic Personality Analysis**: Background social media scraping (Scrapy + Bright Data) and LLM-based personality inference; in-memory cache + BigQuery retry queue for instant personality display
+- **🎯 Personality-Driven Recommendations**: Comprehensive recommendations (tourist spots, hotels, restaurants, beaches, mountains, resorts, events, businesses) via LangChain + FAISS; optional Make.com webhooks for hotels
 - **💬 Interactive Chat Interface**: Chatbot-first experience with rich message formatting, clickable recommendation links, and personality-aware responses
-- **✨ Hidden Gems Discovery**: Uncover off-the-beaten-path attractions and secret spots tailored to user's personality traits
-- **📊 Comprehensive Welcome Message**: Automatic personalized welcome with all recommendations displayed in organized categories
-- **🔄 Real-Time Data Integration**: Weather, events, and news updates for informed travel planning
+- **🔐 Secret Spot Discovery**: Unique, profile-based secret spots (1-2 items) matched to hidden personality traits; dedicated `/secret-recommendations` page
+- **⚠️ Safety First**: Scams and Danger Zones information for Bacolod to keep travelers safe
+- **📍 Precise Directions**: Every recommendation includes Google Maps links and precise navigation directions
+- **💾 InstantDB Integration**: User profiles and recommendations saved to InstantDB (optional) for real-time retrieval; BigQuery primary for analytics
+- **📊 Comprehensive Welcome Message**: Automatic personalized welcome with all recommendations in organized categories
+- **🔄 Real-Time Data Integration**: Weather, events, and news (when APIs configured); RAG routes for contextual search
 - **🗺️ Interactive Maps**: Google Maps integration for location-based exploration
 
 ## 🏗️ Architecture Overview
@@ -24,7 +27,9 @@ MOGI uses a modern architecture combining FastAPI backend, Next.js frontend, and
 │              Next.js 16 (React + TypeScript + Tailwind)     │
 │              - MOGI Chatbot Interface                        │
 │              - Phone/Email Authentication                    │
-│              - Recommendation Cards & Links                  │
+│              - Recommendation Cards with Directions          │
+│              - Secret Spot Badges (Profile-based)            │
+│              - Safety Information Display                    │
 │              - Interactive Maps & Dashboards                │
 └───────────────────────┬─────────────────────────────────────┘
                         │
@@ -33,10 +38,13 @@ MOGI uses a modern architecture combining FastAPI backend, Next.js frontend, and
 │                    FastAPI Orchestration Layer               │
 │              - API Gateway & Request Routing                 │
 │              - Phone/Email OTP Authentication                │
-│              - MOGI Chatbot (LangChain/OpenAI)              │
+│              - MOGI Chatbot (Make.com or LangChain/OpenAI)    │
 │              - Personality Analysis Pipeline                 │
 │              - Social Media Scraping (Scrapy + Bright Data) │
 │              - Comprehensive Recommendations Service         │
+│              - Secret Spot Discovery (Profile-based)         │
+│              - Scams & Danger Zones Safety Info              │
+│              - InstantDB Recommendation Persistence          │
 │              - Session Management & Caching                 │
 └───────────────┬───────────────────────┬───────────────────┘
                 │                       │
@@ -72,6 +80,7 @@ MOGI uses a modern architecture combining FastAPI backend, Next.js frontend, and
             │  Redis Cloud (Caching/OTP)    │
             │  FAISS (Vector Search)        │
             │  Bright Data (Social Scraping) │
+            │  InstantDB (Real-time Recommendations) │
             └───────────────────────────────┘
 ```
 
@@ -347,7 +356,7 @@ pnpm install
 
 3. **Set up infrastructure services:**
 ```bash
-# Start Redis (MongoDB removed - using BigQuery instead)
+# Start Redis (required for OTP/session). MongoDB in docker-compose is optional; primary DB is BigQuery.
 docker-compose up -d
 ```
 
@@ -416,7 +425,8 @@ This will start:
 │   │   │   ├── login/    # Phone/Email authentication
 │   │   │   ├── chat/     # MOGI chatbot interface
 │   │   │   ├── dashboard/# Main dashboard
-│   │   │   └── map/      # Interactive maps
+│   │   │   ├── map/      # Interactive maps
+│   │   │   └── secret-recommendations/  # Secret spots page
 │   │   ├── components/
 │   │   │   ├── MOGIChatbot.tsx      # Main chatbot component
 │   │   │   ├── PhoneInput.tsx        # Philippine phone input
@@ -430,14 +440,16 @@ This will start:
 ├── backend/              # FastAPI application
 │   ├── app/
 │   │   ├── auth.py       # Authentication logic
-│   │   ├── chat_agent.py # MOGI chatbot agent (LangChain)
 │   │   ├── mogi_persona.py # MOGI persona definition
+│   │   ├── make_client.py      # Make.com webhook client (optional)
+│   │   ├── recommendation.py   # Recommendation engine (LangChain + FAISS)
 │   │   ├── social_scraper.py # Bright Data + Scrapy social scraping
 │   │   ├── personality_analyzer.py # LLM personality analysis
 │   │   ├── personality_pipeline.py # Complete analysis pipeline
 │   │   ├── welcome_message_service.py # Welcome message generation
-│   │   ├── comprehensive_recommendations.py # All categories
-│   │   ├── make_client.py      # Make.com webhook client
+│   │   ├── comprehensive_recommendations.py # All categories + InstantDB save
+│   │   ├── instantdb_client.py # InstantDB user/recommendation persistence
+│   │   ├── bigquery_retry_queue.py # Background BigQuery update retries
 │   │   ├── scrapers/
 │   │   │   ├── social_media_spider.py # Scrapy spiders (Facebook/Instagram)
 │   │   │   ├── proxy_middleware.py # Bright Data proxy middleware
@@ -512,6 +524,10 @@ BRIGHT_DATA_RESIDENTIAL_USERNAME=brd-customer-{CUSTOMER_ID}-zone-{ZONE_NAME}__pr
 BRIGHT_DATA_RESIDENTIAL_PASSWORD=your_password
 BRIGHT_DATA_RESIDENTIAL_ENDPOINT=brd.superproxy.io:33335
 
+# InstantDB (optional - for real-time user/recommendation persistence)
+INSTANTDB_APP_ID=your_instantdb_app_id
+INSTANTDB_ADMIN_TOKEN=your_instantdb_admin_token
+
 # CORS (comma-separated)
 ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
@@ -535,9 +551,9 @@ The application is configured for deployment on:
 
 ## 📚 Documentation
 
-- **[system_architecture.html](./system_architecture.html)** - Complete system architecture with file-by-file explanations and Google Cloud setup guide
+- **[system_architecture.html](./system_architecture.html)** - Interactive architecture: data flow, BigQuery streaming buffer solution, timelines, and code locations
 - **[Google Cloud Platform Setup](#-google-cloud-platform-setup)** - Detailed BigQuery and Cloud Storage setup instructions (see above)
-- **[backend/SCRAPY_SETUP.md](./backend/SCRAPY_SETUP.md)** - Scrapy + Bright Data Residential Proxy setup guide
+- **backend/SCRAPY_SETUP.md** - Scrapy + Bright Data Residential Proxy setup guide (if present)
 
 ## 🔄 Development Workflow
 
@@ -579,6 +595,121 @@ git push origin main
 ## 📄 License
 
 MIT
+
+---
+
+---
+
+## 📖 Complete Documentation
+
+## 📖 System Architecture & Documentation
+
+### 🎯 Key Documents
+
+- **[system_architecture.html](system_architecture.html)** - **INTERACTIVE VISUAL GUIDE** (Open in browser)
+  - Complete data flow diagrams
+  - BigQuery streaming buffer problem and three-layer solution
+  - Timeline visualization with status indicators
+  - Before/After comparison
+  - Code file locations and testing procedures
+  - **Best for visual learners!**
+
+### 🏗️ Understanding the BigQuery Streaming Buffer Issue
+
+#### The Problem
+When a user profile is created via streaming insert into BigQuery, the row enters a **streaming buffer for ~90 minutes**. During this time:
+- ✅ Personality analysis works fine
+- ❌ BigQuery refuses to UPDATE the row
+- ❌ Frontend shows generic "We're still learning..." message
+- ❌ Data never gets permanently saved
+
+#### The Solution (3 Layers)
+
+**Layer 1: In-Memory Cache** (`backend/app/user_profile.py`)
+- Stores analyzed personality immediately
+- Frontend fetches from cache (not BigQuery)
+- Response time: microseconds (instant)
+- Cleared after BigQuery successfully updates
+
+**Layer 2: Background Retry System** (`backend/app/bigquery_retry_queue.py` - NEW)
+- Runs every 2 minutes automatically
+- Retry schedule: 2, 5, 10, 20, 30, 60 minutes
+- Gives up after: 6 hours or 12 attempts
+- No manual intervention needed
+
+**Layer 3: Better SQL** (`backend/app/bigquery_client.py`)
+- Uses MERGE statement (handles streaming buffer better)
+- INSERT or UPDATE in single operation
+- More reliable than DELETE+UPDATE
+
+### 📊 Data Flow Overview
+
+```
+User Registers (T+0s)
+    ├─→ Profile created in BigQuery (0.5 defaults)
+    └─→ Personality analysis starts (background)
+
+Analysis Completes (T+5s)
+    ├─→ Traits calculated: {adventurous: 0.7, social: 0.9}
+    ├─→ Store in CACHE immediately ✅
+    ├─→ Try BigQuery update → FAILS (streaming buffer)
+    └─→ Add to retry queue
+
+Frontend Requests Profile (T+10s)
+    ├─→ Get from cache ✅
+    └─→ Display "I see you're adventurous!"
+
+Background Retry (Every 2 minutes)
+    ├─→ T+2min: Retry #1 → FAILS
+    ├─→ T+5min: Retry #2 → FAILS
+    └─→ ...continues retrying...
+
+BigQuery Buffer Expires (T+90min)
+    └─→ Background retry succeeds ✅
+        BigQuery now has correct traits
+        Cache cleared, retry queue cleaned up
+```
+
+### 🔧 Files Modified
+
+| File | Change | Purpose |
+|------|--------|---------|
+| `backend/app/main.py` | Modified | Start background retry task on app startup |
+| `backend/app/personality_pipeline.py` | Modified | Use retry queue when BigQuery update fails |
+| `backend/app/bigquery_client.py` | Updated | Use MERGE statement for better handling |
+| `backend/app/user_profile.py` | Enhanced | In-memory cache for personality fallback |
+| **`backend/app/bigquery_retry_queue.py`** | **NEW** | **Background automatic retry system** |
+
+### ✅ Result
+
+**Before:**
+```
+Backend: ✅ Personality Analysis Complete! (0.7, 0.9...)
+BigQuery: ❌ Still has defaults (0.5, 0.5...)
+Frontend: ❌ "We're still learning..." (wrong!)
+```
+
+**After:**
+```
+Backend: ✅ Personality Analysis Complete!
+Cache: ✅ Stores analyzed traits immediately
+Frontend: ✅ "I see you're adventurous (70%) and social (90%)!"
+BigQuery: ⏳ Eventually updates (after ~90 minutes)
+```
+
+### 🧪 How to Test
+
+1. Start backend: `poetry run uvicorn app.main:app --reload --port 8000`
+2. Register a new user in frontend
+3. Go to chat page **immediately**
+4. **Should see:** Correct personality traits ✅
+5. Check backend logs for either:
+   - `✅ Successfully updated user profile` (immediate save)
+   - `⚠️ Added to retry queue` (will save in background)
+
+### 📚 For More Details
+
+Open **[system_architecture.html](system_architecture.html)** in your browser for an interactive visual guide with timelines, diagrams, and code locations!
 
 ---
 

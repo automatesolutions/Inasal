@@ -226,6 +226,63 @@
       "social": 0.8,
       "cultural": 0.7
     }
+  },
+  {
+    "id": "13",
+    "name": "L'Fisher Hotel",
+    "type": "hotel",
+    "description": "Landmark hotel on Lacson Street with pool, restaurant, and event spaces. Central location for exploring Bacolod's heritage and dining.",
+    "location": {
+      "address": "Lacson Street, Bacolod City",
+      "latitude": 10.6698,
+      "longitude": 122.9412
+    },
+    "tags": ["hotel", "heritage", "central", "restaurant"],
+    "best_time_to_visit": "anytime",
+    "entry_fee": "Room rates vary",
+    "personality_match": {
+      "cultural": 0.9,
+      "social": 0.85,
+      "history_buff": 0.8
+    }
+  },
+  {
+    "id": "14",
+    "name": "Seda Capitol Central",
+    "type": "hotel",
+    "description": "Modern hotel near Capitol Park with rooftop bar, pool, and dining. Great for social travelers and business.",
+    "location": {
+      "address": "Capitol Park, Bacolod City",
+      "latitude": 10.6578,
+      "longitude": 122.9501
+    },
+    "tags": ["hotel", "modern", "social", "business"],
+    "best_time_to_visit": "anytime",
+    "entry_fee": "Room rates vary",
+    "personality_match": {
+      "social": 0.95,
+      "cultural": 0.75,
+      "foodie": 0.7
+    }
+  },
+  {
+    "id": "15",
+    "name": "Go Hotels Bacolod",
+    "type": "hotel",
+    "description": "Budget-friendly hotel near the airport and city center. Clean, comfortable rooms for practical travelers.",
+    "location": {
+      "address": "Circumferential Road, Bacolod City",
+      "latitude": 10.6422,
+      "longitude": 122.9289
+    },
+    "tags": ["hotel", "budget", "practical"],
+    "best_time_to_visit": "anytime",
+    "entry_fee": "Budget rates",
+    "personality_match": {
+      "adventurous": 0.7,
+      "social": 0.65,
+      "cultural": 0.6
+    }
   }
 ]
 

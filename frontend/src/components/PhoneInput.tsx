@@ -29,34 +29,35 @@ export default function PhoneInput({
       
       // Format: +63 9XX XXX XXXX or 09XX XXX XXXX
       if (cleaned.startsWith("63")) {
-        formatted = `+63 ${cleaned.slice(2)}`;
-        if (cleaned.length > 3) {
-          formatted = `+63 ${cleaned.slice(2, 5)}`;
-          if (cleaned.length > 5) {
-            formatted = `+63 ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)}`;
-            if (cleaned.length > 8) {
-              formatted = `+63 ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8)}`;
-            }
-          }
+        // +63 9XX XXX XXXX format
+        if (cleaned.length <= 2) {
+          formatted = `+63`;
+        } else if (cleaned.length <= 5) {
+          formatted = `+63 ${cleaned.slice(2)}`;
+        } else if (cleaned.length <= 8) {
+          formatted = `+63 ${cleaned.slice(2, 5)} ${cleaned.slice(5)}`;
+        } else {
+          formatted = `+63 ${cleaned.slice(2, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8, 13)}`;
         }
       } else if (cleaned.startsWith("0")) {
-        formatted = `0${cleaned.slice(1)}`;
-        if (cleaned.length > 3) {
-          formatted = `0${cleaned.slice(1, 4)}`;
-          if (cleaned.length > 4) {
-            formatted = `0${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)}`;
-            if (cleaned.length > 7) {
-              formatted = `0${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7)}`;
-            }
-          }
+        // 09XX XXX XXXX format (max 11 digits: 0 + 9 + 9)
+        if (cleaned.length <= 1) {
+          formatted = `0`;
+        } else if (cleaned.length <= 4) {
+          formatted = `0${cleaned.slice(1)}`;
+        } else if (cleaned.length <= 7) {
+          formatted = `0${cleaned.slice(1, 4)} ${cleaned.slice(4)}`;
+        } else {
+          formatted = `0${cleaned.slice(1, 4)} ${cleaned.slice(4, 7)} ${cleaned.slice(7, 11)}`;
         }
       } else if (cleaned.length > 0) {
-        formatted = cleaned;
-        if (cleaned.length > 3) {
-          formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)}`;
-          if (cleaned.length > 6) {
-            formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
-          }
+        // 9XX XXX XXXX format (max 10 digits: 9 + 9)
+        if (cleaned.length <= 3) {
+          formatted = cleaned;
+        } else if (cleaned.length <= 6) {
+          formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+        } else {
+          formatted = `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6, 10)}`;
         }
       }
       
@@ -71,8 +72,20 @@ export default function PhoneInput({
     // Remove all non-digits
     const cleaned = input.replace(/\D/g, "");
     
-    // Limit to 13 digits (for +63 9XX XXX XXXX)
-    const limited = cleaned.slice(0, 13);
+    // Limit based on format:
+    // +63 9XX XXX XXXX = 13 digits (63 + 9 + 9 digits)
+    // 09XX XXX XXXX = 11 digits (0 + 9 + 9 digits)
+    // 9XX XXX XXXX = 10 digits (9 + 9 digits)
+    let maxDigits = 13;
+    if (cleaned.startsWith("0")) {
+      maxDigits = 11; // 0 + 9 + 9 digits
+    } else if (cleaned.startsWith("63")) {
+      maxDigits = 13; // 63 + 9 + 9 digits
+    } else if (cleaned.length > 0 && !cleaned.startsWith("63")) {
+      maxDigits = 10; // 9 + 9 digits
+    }
+    
+    const limited = cleaned.slice(0, maxDigits);
     
     // Update raw value (without formatting)
     onChange(limited);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/lib/api";
+import { isAuthenticated, logout } from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
@@ -10,12 +10,16 @@ export default function Home() {
 
   useEffect(() => {
     setIsLoaded(true);
-    
-    // Redirect authenticated users to chat
-    if (isAuthenticated()) {
-      router.push("/chat");
+    // Always show landing page - users must click "Get Started" to login
+    // No auto-redirect to chat
+    // If there's an invalid token, clear it
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth_token');
+      if (token && (token === 'null' || token === 'undefined' || !token.trim())) {
+        logout(); // Clear invalid token
+      }
     }
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -103,29 +107,11 @@ export default function Home() {
           {/* Main tagline with better spacing */}
           <div className={`mb-6 transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <p className="text-2xl sm:text-3xl md:text-4xl text-white mb-4 font-bold drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-              Discover the City of Smiles
+              Discover the REAL City of Smiles
             </p>
             <p className="text-base sm:text-lg md:text-xl text-amber-50/90 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-              Experience Bacolod with AI-powered personalized recommendations for attractions, food, and hidden gems
+              Uncover <strong>secret local gems</strong>, discover businesses and events, plus essential safety tips to <strong>avoid scams and danger</strong>
             </p>
-          </div>
-
-          {/* Feature highlights */}
-          <div className={`mb-10 transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-sm md:text-base">
-              <div className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                <span>✨</span>
-                <span className="font-medium">AI-Powered</span>
-              </div>
-              <div className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                <span>🎯</span>
-                <span className="font-medium">Personalized</span>
-              </div>
-              <div className="flex items-center gap-2 text-white/90 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                <span>📍</span>
-                <span className="font-medium">Local Insights</span>
-              </div>
-            </div>
           </div>
           
           {/* Enhanced CTA Button */}

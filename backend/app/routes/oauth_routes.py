@@ -145,8 +145,8 @@ async def oauth_callback(
                 # Create new profile
                 user_id = str(uuid.uuid4())
                 profile = await profile_service.create_profile(
-                    email=email,
                     user_id=user_id,
+                    email=email,  # Optional, not stored in InstantDB
                     name=social_data.name,
                 )
                 # Update with inferred personality
