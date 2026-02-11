@@ -3,7 +3,8 @@
 import logging
 import os
 import json
-from typing import Optional, Dict, Any
+import asyncio
+from typing import Optional, Dict, Any, List
 import httpx
 from datetime import datetime
 from dotenv import load_dotenv
@@ -281,6 +282,603 @@ class InstantDBClient:
         except Exception as e:
             logger.error(f"❌ Error updating user profile in InstantDB: {e}")
             return False
+    
+    # --- Curated resources (from Google Sheet: Bacolod Details) ---
+    CURATED_COLLECTION = "curated_resources"
+    
+    async def save_curated_category(
+        self, category_slug: str, urls: list, content_hash: Optional[str] = None
+    ) -> bool:
+        """Save or update one category of curated URLs (from Google Sheet)."""
+        if not self._is_available():
+            return False
+        try:
+            doc = {
+                "id": category_slug,
+                "urls": urls,
+                "updated_at": datetime.utcnow().isoformat(),
+            }
+            if content_hash:
+                doc["content_hash"] = content_hash
+            payload = {
+                "steps": [
+                    ["update", self.CURATED_COLLECTION, category_slug, doc]
+                ]
+            }
+            response = await self.client.post(
+                f"{self.base_url}/admin/transact",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            if response.status_code in [200, 201]:
+                logger.info(f"✅ Curated category saved: {category_slug} ({len(urls)} URLs)")
+                return True
+            logger.error(f"❌ InstantDB curated save error: {response.status_code} - {response.text}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Error saving curated category: {e}")
+            return False
+    
+    async def get_all_curated_resources(self) -> Dict[str, Any]:
+        """Get all curated resources: { category_slug: { urls, updated_at, content_hash } }."""
+        if not self._is_available():
+            return {}
+        try:
+            payload = {
+                "query": {
+                    "curated_resources": {}
+                }
+            }
+            response = await self.client.post(
+                f"{self.base_url}/admin/query",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            if response.status_code != 200:
+                return {}
+            data = response.json()
+            items = data.get("curated_resources") or []
+            return {
+                item["id"]: {
+                    "urls": item.get("urls", []),
+                    "updated_at": item.get("updated_at"),
+                    "content_hash": item.get("content_hash"),
+                }
+                for item in items
+                if item.get("id")
+            }
+        except Exception as e:
+            logger.error(f"❌ Error getting curated resources: {e}")
+            return {}
+    
+    async def get_curated_urls_for_category(self, category_slug: str) -> List[str]:
+        """Get list of URLs for a category (e.g. accommodation_hotels, tourist_spots)."""
+        all_ = await self.get_all_curated_resources()
+        cat = all_.get(category_slug)
+        return (cat.get("urls", []) or []) if cat else []
+    
+    # --- Scraped content (from Google Sheet URLs) ---
+    # Use separate collections per category to create "workspaces" in InstantDB
+    SCRAPED_CONTENT_COLLECTION_PREFIX = "scraped_content_"
+    
+    def _get_collection_for_category(self, category: str) -> str:
+        """Get collection name for a category (creates separate workspace per category)"""
+        if not category:
+            return "scraped_content_unknown"
+        # Map category slugs to collection names
+        category_collections = {
+            "accommodation_hotels": "scraped_content_accommodation_hotels",
+            "tourist_spots": "scraped_content_tourist_spots",
+            "restaurants_food": "scraped_content_restaurants_food",
+            "dangerous_areas": "scraped_content_dangerous_areas",
+            "scams": "scraped_content_scams",
+            "secret_places": "scraped_content_secret_places",
+        }
+        collection_name = category_collections.get(category, f"scraped_content_{category}")
+        return collection_name
+    
+    async def _ensure_collection_exists(self, collection_name: str):
+        """Ensure a collection exists in InstantDB by creating an empty placeholder"""
+        if not self._is_available():
+            return
+        try:
+            # Create a placeholder document to ensure collection exists
+            placeholder_id = "00000000-0000-0000-0000-000000000000"
+            placeholder_doc = {
+                "id": placeholder_id,
+                "_placeholder": True,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+            
+            payload = {
+                "steps": [
+                    ["update", collection_name, placeholder_id, placeholder_doc]
+                ]
+            }
+            
+            response = await self.client.post(
+                f"{self.base_url}/admin/transact",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            
+            if response.status_code in [200, 201]:
+                logger.debug(f"✅ Ensured collection '{collection_name}' exists")
+                # Delete placeholder immediately
+                delete_payload = {
+                    "steps": [
+                        ["delete", collection_name, placeholder_id]
+                    ]
+                }
+                await self.client.post(
+                    f"{self.base_url}/admin/transact",
+                    json=delete_payload,
+                    headers=self._get_headers(),
+                )
+            else:
+                logger.debug(f"Collection '{collection_name}' may already exist (status: {response.status_code})")
+        except Exception as e:
+            logger.debug(f"Could not ensure collection exists (may already exist): {e}")
+    
+    async def save_scraped_content(self, url: str, content: Dict[str, Any]) -> bool:
+        """
+        Save scraped content from a URL to category-specific collection (workspace).
+        Uses UUID-based ID derived from URL hash.
+        Enhanced to handle location, events, and personality_keywords fields.
+        """
+        if not self._is_available():
+            return False
+        try:
+            import hashlib
+            category = content.get("category", "unknown")
+            
+            # Generate UUID-like ID from URL hash (InstantDB requires UUID format)
+            url_hash = hashlib.sha256(url.encode()).hexdigest()
+            # Convert to UUID format: 8-4-4-4-12
+            uuid_id = f"{url_hash[:8]}-{url_hash[8:12]}-{url_hash[12:16]}-{url_hash[16:20]}-{url_hash[20:32]}"
+            
+            # Get category-specific collection name (creates separate workspace)
+            collection_name = self._get_collection_for_category(category)
+            
+            # Prepare document with all fields
+            # Include entity-specific fields extracted by LLM
+            doc = {
+                "id": uuid_id,
+                "url": url,
+                "category": category,
+                "scraped_at": datetime.utcnow().isoformat(),
+            }
+            
+            # Add basic fields
+            for key in ["title", "description", "content_text", "domain", "places_mentioned"]:
+                if key in content:
+                    doc[key] = content[key]
+            
+            # Add images (use entity-specific images if available, otherwise fallback to scraped images)
+            if "images" in content and content["images"]:
+                doc["images"] = content["images"]
+            else:
+                doc["images"] = []
+            
+            # Add location (entity-specific address takes priority)
+            if "address" in content and content["address"]:
+                # If entity has specific address, create location object
+                location = content.get("location", {})
+                if isinstance(location, dict):
+                    location["address"] = content["address"]
+                else:
+                    location = {"address": content["address"]}
+                doc["location"] = location
+            elif "location" in content and content["location"]:
+                doc["location"] = content["location"]
+            
+            # Add entity-specific fields based on category
+            if category == "accommodation_hotels":
+                for key in ["hotel_name", "phone", "email", "website", "amenities", 
+                           "room_types", "price_range", "rating", "check_in_time", 
+                           "check_out_time", "policies"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use hotel_name as title if available
+                if "hotel_name" in content and content["hotel_name"]:
+                    doc["title"] = content["hotel_name"]
+                    doc["name"] = content["hotel_name"]  # Also add as 'name' field
+            
+            elif category == "restaurants_food":
+                for key in ["restaurant_name", "phone", "email", "website", "cuisine_type",
+                           "specialties", "price_range", "opening_hours", "rating", 
+                           "features", "reservations"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use restaurant_name as title if available
+                if "restaurant_name" in content and content["restaurant_name"]:
+                    doc["title"] = content["restaurant_name"]
+                    doc["name"] = content["restaurant_name"]
+            
+            elif category == "tourist_spots":
+                for key in ["attraction_name", "opening_hours", "entrance_fee", 
+                           "best_time_to_visit", "duration", "highlights", "activities",
+                           "contact_info", "parking", "accessibility", "category"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use attraction_name as title if available
+                if "attraction_name" in content and content["attraction_name"]:
+                    doc["title"] = content["attraction_name"]
+                    doc["name"] = content["attraction_name"]
+            
+            elif category == "secret_places":
+                for key in ["place_name", "why_secret", "best_time_to_visit", "how_to_find",
+                           "what_to_expect", "tips", "category"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use place_name as title if available
+                if "place_name" in content and content["place_name"]:
+                    doc["title"] = content["place_name"]
+                    doc["name"] = content["place_name"]
+            
+            elif category == "secret_places":
+                for key in ["place_name", "why_secret", "best_time_to_visit", 
+                           "how_to_find", "what_to_expect", "tips"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use place_name as title if available
+                if "place_name" in content and content["place_name"]:
+                    doc["title"] = content["place_name"]
+                    doc["name"] = content["place_name"]
+            
+            elif category == "dangerous_areas":
+                for key in ["name", "location", "warning_signs", "how_to_avoid", 
+                           "severity", "reported_incidents", "time_of_concern", "type_of_danger"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use name as title if available
+                if "name" in content and content["name"]:
+                    doc["title"] = content["name"]
+            
+            elif category == "scams":
+                for key in ["name", "location", "warning_signs", "how_to_avoid", 
+                           "severity", "reported_incidents", "scam_type", "target_victims", "common_tactics"]:
+                    if key in content:
+                        doc[key] = content[key]
+                # Use name as title if available
+                if "name" in content and content["name"]:
+                    doc["title"] = content["name"]
+            
+            # Add common fields
+            if "events" in content and content["events"]:
+                doc["events"] = content["events"]
+            
+            if "personality_keywords" in content and content["personality_keywords"]:
+                doc["personality_keywords"] = content["personality_keywords"]
+            
+            # Add any other fields that might be present
+            for key in ["rating", "publish_date"]:
+                if key in content and key not in doc:
+                    doc[key] = content[key]
+            
+            payload = {
+                "steps": [
+                    ["update", collection_name, uuid_id, doc]
+                ]
+            }
+            response = await self.client.post(
+                f"{self.base_url}/admin/transact",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            if response.status_code in [200, 201]:
+                logger.info(f"✅ Scraped content saved to InstantDB collection '{collection_name}': {url[:60]}... (ID: {uuid_id})")
+                try:
+                    response_data = response.json()
+                    logger.debug(f"   Response: {json.dumps(response_data, indent=2)[:500]}")
+                except:
+                    pass
+                return True
+            logger.error(f"❌ InstantDB scraped content save error: {response.status_code}")
+            logger.error(f"   URL: {url[:80]}")
+            logger.error(f"   Response: {response.text[:500]}")
+            logger.error(f"   Payload keys: {list(payload.keys())}")
+            logger.error(f"   Doc keys: {list(doc.keys())}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Error saving scraped content: {e}")
+            return False
+    
+    async def url_already_scraped(self, url: str, category: str) -> bool:
+        """Check if a URL has already been scraped for this category."""
+        if not self._is_available():
+            return False
+        try:
+            collection_name = self._get_collection_for_category(category)
+            payload = {
+                "query": {
+                    collection_name: {
+                        "$": {
+                            "where": {
+                                "url": url
+                            }
+                        }
+                    }
+                }
+            }
+            response = await self.client.post(
+                f"{self.base_url}/admin/query",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get(collection_name) or []
+                return len(items) > 0
+            return False
+        except Exception as e:
+            logger.debug(f"Error checking if URL already scraped: {e}")
+            return False
+    
+    async def get_scraped_content_by_category(self, category: str) -> List[Dict[str, Any]]:
+        """Get all scraped content for a category from its category-specific collection."""
+        if not self._is_available():
+            logger.warning(f"InstantDB not available, cannot get scraped content for {category}")
+            return []
+        try:
+            # Query category-specific collection
+            collection_name = self._get_collection_for_category(category)
+            payload = {
+                "query": {
+                    collection_name: {}
+                }
+            }
+            logger.debug(f"Querying InstantDB collection '{collection_name}' for category '{category}'")
+            
+            response = await self.client.post(
+                f"{self.base_url}/admin/query",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            if response.status_code != 200:
+                logger.warning(f"Query failed with status {response.status_code}: {response.text[:500]}")
+                return []
+            
+            data = response.json()
+            logger.debug(f"Query response keys: {list(data.keys())}")
+            items = data.get(collection_name) or []
+            logger.info(f"Found {len(items)} items for category '{category}' in collection '{collection_name}'")
+            
+            # Log sample item if available
+            if items:
+                sample = items[0]
+                logger.debug(f"Sample item for {category}: {json.dumps({k: v for k, v in sample.items() if k != 'content_text'}, indent=2)[:500]}")
+            
+            return items
+        except Exception as e:
+            logger.error(f"❌ Error getting scraped content for category '{category}': {e}", exc_info=True)
+            return []
+    
+    async def get_all_scraped_content(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Get all scraped content grouped by category from all category-specific collections."""
+        if not self._is_available():
+            logger.warning("InstantDB not available, cannot get all scraped content")
+            return {}
+        try:
+            # Query all category-specific collections
+            category_collections = [
+                "scraped_content_accommodation_hotels",
+                "scraped_content_tourist_spots",
+                "scraped_content_restaurants_food",
+                "scraped_content_dangerous_areas",
+                "scraped_content_scams",
+                "scraped_content_secret_places",
+            ]
+            
+            # Build query for all collections
+            query_dict = {}
+            for collection in category_collections:
+                query_dict[collection] = {}
+            
+            payload = {"query": query_dict}
+            logger.debug("Querying InstantDB for all scraped content from category collections")
+            
+            response = await self.client.post(
+                f"{self.base_url}/admin/query",
+                json=payload,
+                headers=self._get_headers(),
+            )
+            if response.status_code != 200:
+                logger.warning(f"Query failed with status {response.status_code}: {response.text[:500]}")
+                return {}
+            
+            data = response.json()
+            logger.debug(f"Query response keys: {list(data.keys())}")
+            
+            # Group by category
+            grouped = {}
+            category_map = {
+                "scraped_content_accommodation_hotels": "accommodation_hotels",
+                "scraped_content_tourist_spots": "tourist_spots",
+                "scraped_content_restaurants_food": "restaurants_food",
+                "scraped_content_dangerous_areas": "dangerous_areas",
+                "scraped_content_scams": "scams",
+                "scraped_content_secret_places": "secret_places",
+            }
+            
+            total_items = 0
+            for collection_name, category_slug in category_map.items():
+                items = data.get(collection_name) or []
+                if items:
+                    grouped[category_slug] = items
+                    total_items += len(items)
+                    logger.debug(f"Retrieved {len(items)} items from {collection_name}")
+            
+            logger.info(f"Retrieved {total_items} total scraped content items from {len(grouped)} category collections")
+            logger.info(f"Categories with data: {list(grouped.keys())}")
+            return grouped
+        except Exception as e:
+            logger.error(f"❌ Error getting all scraped content: {e}", exc_info=True)
+            return {}
+    
+    async def get_scraped_content_by_location(
+        self, latitude: float, longitude: float, radius_km: float = 10.0
+    ) -> List[Dict[str, Any]]:
+        """
+        Find scraped content near coordinates.
+        Note: InstantDB doesn't support geo queries natively, so we fetch all and filter in memory.
+        For production, consider using a geospatial database or external service.
+        """
+        if not self._is_available():
+            return []
+        try:
+            # Get all scraped content with location data
+            all_content = await self.get_all_scraped_content()
+            results = []
+            
+            # Simple distance calculation (Haversine formula)
+            import math
+            
+            def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+                """Calculate distance between two points in kilometers"""
+                R = 6371.0  # Earth radius in km
+                dlat = math.radians(lat2 - lat1)
+                dlon = math.radians(lon2 - lon1)
+                a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+                return R * c
+            
+            # Filter by distance
+            for category, items in all_content.items():
+                for item in items:
+                    location = item.get("location")
+                    if location and isinstance(location, dict):
+                        loc_lat = location.get("latitude")
+                        loc_lng = location.get("longitude")
+                        if loc_lat is not None and loc_lng is not None:
+                            try:
+                                distance = haversine_distance(latitude, longitude, float(loc_lat), float(loc_lng))
+                                if distance <= radius_km:
+                                    item_copy = dict(item)
+                                    item_copy["distance_km"] = round(distance, 2)
+                                    results.append(item_copy)
+                            except (ValueError, TypeError):
+                                continue
+            
+            # Sort by distance
+            results.sort(key=lambda x: x.get("distance_km", float("inf")))
+            return results
+        except Exception as e:
+            logger.error(f"❌ Error getting scraped content by location: {e}")
+            return []
+    
+    async def get_scraped_content_by_event_date(
+        self, start_date: Optional[str] = None, end_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find scraped content with events in date range.
+        Dates should be in ISO format (YYYY-MM-DD).
+        """
+        if not self._is_available():
+            return []
+        try:
+            from datetime import datetime as dt
+            
+            all_content = await self.get_all_scraped_content()
+            results = []
+            
+            for category, items in all_content.items():
+                for item in items:
+                    events = item.get("events", [])
+                    if not events:
+                        continue
+                    
+                    # Check if any event falls within date range
+                    for event in events:
+                        if not isinstance(event, dict):
+                            continue
+                        
+                        event_start = event.get("start_date")
+                        event_end = event.get("end_date") or event_start
+                        
+                        if not event_start:
+                            continue
+                        
+                        try:
+                            # Parse dates
+                            event_start_dt = dt.fromisoformat(event_start.split("T")[0])
+                            
+                            # Check if event overlaps with query range
+                            if start_date:
+                                start_dt = dt.fromisoformat(start_date.split("T")[0])
+                                if event_start_dt < start_dt:
+                                    if event_end:
+                                        event_end_dt = dt.fromisoformat(event_end.split("T")[0])
+                                        if event_end_dt < start_dt:
+                                            continue
+                                    else:
+                                        continue
+                            
+                            if end_date:
+                                end_dt = dt.fromisoformat(end_date.split("T")[0])
+                                if event_start_dt > end_dt:
+                                    continue
+                            
+                            # Event matches date range
+                            item_copy = dict(item)
+                            item_copy["matched_event"] = event
+                            results.append(item_copy)
+                            break  # Only add item once even if multiple events match
+                        except (ValueError, TypeError) as e:
+                            logger.debug(f"Error parsing event date: {e}")
+                            continue
+            
+            return results
+        except Exception as e:
+            logger.error(f"❌ Error getting scraped content by event date: {e}")
+            return []
+    
+    async def get_scraped_content_by_personality_traits(
+        self, traits: Dict[str, float], min_match_score: float = 0.3
+    ) -> List[Dict[str, Any]]:
+        """
+        Find scraped content matching personality traits.
+        traits: {adventurous: 0.8, cultural: 0.6, ...}
+        Returns items where personality_keywords align with provided traits.
+        """
+        if not self._is_available():
+            return []
+        try:
+            all_content = await self.get_all_scraped_content()
+            results = []
+            
+            for category, items in all_content.items():
+                for item in items:
+                    item_keywords = item.get("personality_keywords", {})
+                    if not item_keywords or not isinstance(item_keywords, dict):
+                        continue
+                    
+                    # Calculate match score
+                    match_score = 0.0
+                    matched_traits = 0
+                    
+                    for trait, user_score in traits.items():
+                        if trait in item_keywords:
+                            item_score = item_keywords[trait]
+                            if isinstance(item_score, (int, float)) and isinstance(user_score, (int, float)):
+                                # Score based on similarity (higher when both are high)
+                                similarity = 1.0 - abs(user_score - item_score)
+                                match_score += similarity * user_score  # Weight by user preference
+                                matched_traits += 1
+                    
+                    if matched_traits > 0:
+                        avg_match = match_score / matched_traits
+                        if avg_match >= min_match_score:
+                            item_copy = dict(item)
+                            item_copy["personality_match_score"] = round(avg_match, 2)
+                            results.append(item_copy)
+            
+            # Sort by match score (highest first)
+            results.sort(key=lambda x: x.get("personality_match_score", 0), reverse=True)
+            return results
+        except Exception as e:
+            logger.error(f"❌ Error getting scraped content by personality traits: {e}")
+            return []
     
     async def close(self):
         """Close the HTTP client"""

@@ -61,7 +61,7 @@ export default function SecretRecommendationsPage() {
               )}
               {item.rating !== undefined && item.rating !== null && (
                 <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-semibold">
-                  ⭐ {item.rating.toFixed(1)}
+                  ⭐ {typeof item.rating === 'number' ? item.rating.toFixed(1) : String(item.rating || 'N/A')}
                 </span>
               )}
             </div>

@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.redis_client import redis_client
 from app.bigquery_client import bigquery_client
 from app.storage_client import storage_client
-from app.routes import auth_routes, profile_routes
+from app.routes import auth_routes, profile_routes, admin_routes
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +197,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(auth_routes.router)
 app.include_router(profile_routes.router)
+app.include_router(admin_routes.router)
 
 # Include analytics routes
 try:

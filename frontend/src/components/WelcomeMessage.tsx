@@ -139,13 +139,34 @@ export function WelcomeMessage({ content, recommendations, personality_summary }
           />
         )}
         
-        {/* Scams and Danger Zones */}
+        {/* Scams and Danger Zones - Link to separate page */}
         {recommendations.places_to_avoid && recommendations.places_to_avoid.length > 0 && (
-          <RecommendationCategory
-            title="⚠️ Scams and Danger Zones in Bacolod"
-            icon="⚠️"
-            items={recommendations.places_to_avoid}
-          />
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-lg p-6 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center text-2xl">
+                  ⚠️
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                    ⚠️ Scams and Danger Zones in Bacolod
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {recommendations.places_to_avoid.length} safety alert{recommendations.places_to_avoid.length !== 1 ? 's' : ''} available
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/safety"
+                className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                View Safety Information
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
+          </div>
         )}
         
         {/* Secret Spot - Last (Profile-based, unique) */}

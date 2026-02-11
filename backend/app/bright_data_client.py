@@ -39,6 +39,8 @@ class BrightDataClient:
         self._zone = settings.bright_data_zone or "ai_agent"  # Use configured zone first
         # Web Unlocker zone for browser automation (like Apify actors)
         self._web_unlocker_zone = settings.bright_data_web_unlocker_zone or "web_unlocker"
+        # Web Unlocker API key (can be different from main API key)
+        self._web_unlocker_api_key = (settings.bright_data_web_unlocker_api_key or self._api_key).strip()
         # SERP API zone and key for Google/Bing searches
         self._serp_zone = settings.bright_data_serp_zone or "serp_api2"
         self._serp_api_key = (settings.bright_data_serp_api_key or self._api_key).strip()  # Fallback to main API key
@@ -122,7 +124,9 @@ class BrightDataClient:
         Returns:
             HTML content as string, or None if scraping failed
         """
-        if not self._api_key:
+        # Use Web Unlocker API key if available, otherwise fallback to main API key
+        api_key_to_use = self._web_unlocker_api_key or self._api_key
+        if not api_key_to_use:
             logger.warning("Bright Data API key not configured, cannot use Web Unlocker")
             return None
         
@@ -135,20 +139,18 @@ class BrightDataClient:
         last_error = None
         
         for zone in zones_to_try:
+            # Web Unlocker API format: zone, url, format (as shown in curl example)
             payload = {
                 "zone": zone,
                 "url": url,
                 "format": "raw",  # Get raw HTML
             }
             
-            # Add browser automation options
-            if render:
-                payload["render"] = "html"  # Render JavaScript
-            if wait_for:
-                payload["wait_for"] = wait_for
+            # Note: Web Unlocker API doesn't support "render" or "wait_for" parameters
+            # It automatically renders JavaScript and waits for page load
             
             headers = {
-                "Authorization": f"Bearer {self._api_key}",
+                "Authorization": f"Bearer {api_key_to_use}",
                 "Content-Type": "application/json",
             }
             

@@ -72,11 +72,11 @@ export function RecommendationCard({ recommendation, isHiddenGem = false, isSecr
         )}
         
         <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
-          {recommendation.match_score && (
+          {recommendation.match_score !== undefined && (
             <span>Match: {(recommendation.match_score * 100).toFixed(0)}%</span>
           )}
-          {recommendation.rating && (
-            <span>⭐ {recommendation.rating.toFixed(1)}</span>
+          {recommendation.rating !== undefined && recommendation.rating !== null && (
+            <span>⭐ {typeof recommendation.rating === 'number' ? recommendation.rating.toFixed(1) : String(recommendation.rating)}</span>
           )}
           {recommendation.price_range && (
             <span>💰 {recommendation.price_range}</span>

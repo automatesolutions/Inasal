@@ -92,7 +92,8 @@ class Settings(BaseSettings):
     bright_data_snapshot_poll_max_attempts: int = 60  # Max attempts to poll snapshot status
     bright_data_snapshot_poll_delay: int = 5  # Delay between poll attempts (seconds)
     # Bright Data MCP (optional - only needed for specific features)
-    bright_data_web_unlocker_zone: str = ""  # Optional: Web Unlocker zone for proxy/unlocking
+    bright_data_web_unlocker_zone: str = ""  # Optional: Web Unlocker zone for proxy/unlocking (e.g., "web_unlocker")
+    bright_data_web_unlocker_api_key: str = ""  # Optional: Separate API key for Web Unlocker (can be different from main API key)
     bright_data_browser_auth: str = ""  # Optional: Browser authentication credentials
     bright_data_serp_zone: str = ""  # Optional: SERP API zone (e.g., "serp_api2") for Google/Bing searches
     bright_data_serp_api_key: str = ""  # Optional: Separate API key for SERP API
@@ -122,6 +123,12 @@ class Settings(BaseSettings):
         # If bright_data_serp_zone is empty, check for BRIGHT_DATA_SERP_ZONE, or default to "serp_api2"
         if not self.bright_data_serp_zone:
             self.bright_data_serp_zone = os.getenv('BRIGHT_DATA_SERP_ZONE', 'serp_api2')
+        # If bright_data_web_unlocker_zone is empty, check for BRIGHT_DATA_WEB_UNLOCKER_ZONE
+        if not self.bright_data_web_unlocker_zone:
+            self.bright_data_web_unlocker_zone = os.getenv('BRIGHT_DATA_WEB_UNLOCKER_ZONE', '')
+        # If bright_data_web_unlocker_api_key is empty, check for BRIGHT_DATA_WEB_UNLOCKER_API_KEY
+        if not self.bright_data_web_unlocker_api_key:
+            self.bright_data_web_unlocker_api_key = os.getenv('BRIGHT_DATA_WEB_UNLOCKER_API_KEY', '')
         # If openai_api_key is empty, check for OPENAI_API_KEY
         if not self.openai_api_key:
             self.openai_api_key = os.getenv('OPENAI_API_KEY', '')
