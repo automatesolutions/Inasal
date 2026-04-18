@@ -1131,7 +1131,7 @@ class ComprehensiveRecommendationsService:
         return merged
 
     def _is_bacolod_related(self, name: str, description: str = "", area: str = "") -> bool:
-        """Check if item is related to Bacolod. Returns False if it's clearly from another location."""
+        """Check if item is related to Bacolod. Returns False if it's clearly from another location or has malformed data."""
         text = f"{name} {description} {area}".lower()
         
         # Exclude items from other locations
@@ -1140,6 +1140,7 @@ class ComprehensiveRecommendationsService:
             "manila", "metro manila", "ncr", "quezon city", "makati", "pasay", "taguig",  # Manila area
             "cebu", "davao", "iloilo", "ilo-ilo", "bohol", "palawan",  # Other major cities
             "horse-drawn", "carriage", "kalesa",  # Manila-specific scams
+            "marawi", "marawi city",  # Marawi City (not part of Bacolod)
         ]
         
         # Check if text contains excluded keywords
@@ -1148,7 +1149,60 @@ class ComprehensiveRecommendationsService:
                 logger.info(f"Excluding non-Bacolod item: {name[:60]}... (contains '{keyword}')")
                 return False
         
+        # Exclude items with malformed text (fragmented sentences, incomplete words)
+        # Check for patterns like "st, eps", "st, ay", "fog,", "arting," (incomplete words with commas)
+        malformed_patterns = [
+            r'\b\w{1,2},\s*\w{1,3}\b',  # Short words with comma (e.g., "st, eps", "st, ay")
+            r'\b\w{1,3},\s*$',  # Very short word ending with comma at end of text
+            r'just do these simple st,',  # Specific malformed pattern
+            r'windshield will be fog,',  # Specific malformed pattern
+            r'premium st, arting',  # Specific malformed pattern
+            r'minimum length of st, ay',  # Specific malformed pattern
+        ]
+        import re
+        for pattern in malformed_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                logger.info(f"Excluding malformed item: {name[:60]}... (contains malformed text pattern)")
+                return False
+        
+        # Exclude items with suspicious location patterns (multiple repeated locations, fragmented text)
+        if area:
+            area_lower = area.lower()
+            # Check for fragmented location text (contains incomplete sentences)
+            if any(fragment in area_lower for fragment in [
+                "just do these simple",
+                "windshield will be fog",
+                "premium st, arting",
+                "minimum length of st, ay",
+                "recommended minimum length",
+                "international travel insurance premium",
+            ]):
+                logger.info(f"Excluding item with malformed location: {name[:60]}... (location contains fragmented text)")
+                return False
+            
+            # Check for excessive repetition of "Bacolod City, Negros Occidental" (indicates malformed data)
+            if area_lower.count("bacolod city, negros occidental") > 2:
+                logger.info(f"Excluding item with repeated location: {name[:60]}... (location repeated multiple times)")
+                return False
+        
         return True
+    
+    def _clean_references(self, text: str) -> str:
+        """Clean text references, replacing non-local references with local alternatives."""
+        if not text:
+            return text
+        
+        # Replace Raffy Tulfo references with local police
+        text = text.replace("RAFFY TULFO IN ACTION", "local police")
+        text = text.replace("Raffy Tulfo in Action", "local police")
+        text = text.replace("raffy tulfo in action", "local police")
+        text = text.replace("Tulfo", "local police")
+        text = text.replace("tulfo", "local police")
+        text = text.replace("TV5 Media Center", "local police station")
+        text = text.replace("ACTION CENTER", "local police station")
+        text = text.replace("action center", "local police station")
+        
+        return text
 
     async def _get_scams_and_danger_zones(
         self, location, curated_details: Optional[Dict[str, str]] = None
@@ -1171,9 +1225,13 @@ class ComprehensiveRecommendationsService:
                 description = item.get("description", "")
                 area = item.get("location", {}).get("address", "") if isinstance(item.get("location"), dict) else ""
                 
-                # Filter out non-Bacolod items
+                # Filter out non-Bacolod items and malformed data
                 if not self._is_bacolod_related(scam_name, description, area):
                     continue
+                
+                # Clean references (replace Tulfo with local police)
+                scam_name = self._clean_references(scam_name)
+                description = self._clean_references(description)
                 
                 # Translate to English
                 scam_name = await self._translate_to_english(scam_name)
@@ -1182,15 +1240,23 @@ class ComprehensiveRecommendationsService:
                 # Translate warning signs and how_to_avoid
                 warning_signs = item.get("warning_signs", [])
                 if isinstance(warning_signs, list):
-                    warning_signs = [await self._translate_to_english(str(sign)) for sign in warning_signs]
+                    warning_signs = [self._clean_references(await self._translate_to_english(str(sign))) for sign in warning_signs]
                 elif warning_signs:
-                    warning_signs = [await self._translate_to_english(str(warning_signs))]
+                    warning_signs = [self._clean_references(await self._translate_to_english(str(warning_signs)))]
                 
                 how_to_avoid = item.get("how_to_avoid", [])
                 if isinstance(how_to_avoid, list):
-                    how_to_avoid = [await self._translate_to_english(str(advice)) for advice in how_to_avoid]
+                    how_to_avoid = [self._clean_references(await self._translate_to_english(str(advice))) for advice in how_to_avoid]
                 elif how_to_avoid:
-                    how_to_avoid = [await self._translate_to_english(str(how_to_avoid))]
+                    how_to_avoid = [self._clean_references(await self._translate_to_english(str(how_to_avoid)))]
+                
+                # Clean area/location
+                area_cleaned = item.get("location", {}).get("address", "Bacolod City") if isinstance(item.get("location"), dict) else "Bacolod City"
+                area_cleaned = self._clean_references(area_cleaned)
+                
+                # Filter out malformed areas
+                if not self._is_bacolod_related("", "", area_cleaned):
+                    continue
                 
                 rec_item = {
                     "id": item.get("id", ""),
@@ -1203,7 +1269,7 @@ class ComprehensiveRecommendationsService:
                     "how_to_avoid": how_to_avoid,
                     "severity": item.get("severity", "medium"),
                     "scam_type": item.get("scam_type"),
-                    "area": item.get("location", {}).get("address", "Bacolod City") if isinstance(item.get("location"), dict) else "Bacolod City",
+                    "area": area_cleaned if area_cleaned and area_cleaned != "Bacolod City" else "Bacolod City, Negros Occidental",
                 }
                 all_items.append(rec_item)
         
@@ -1216,9 +1282,13 @@ class ComprehensiveRecommendationsService:
                 description = item.get("description", "")
                 area = item.get("location", {}).get("address", "") if isinstance(item.get("location"), dict) else ""
                 
-                # Filter out non-Bacolod items
+                # Filter out non-Bacolod items and malformed data
                 if not self._is_bacolod_related(danger_name, description, area):
                     continue
+                
+                # Clean references (replace Tulfo with local police)
+                danger_name = self._clean_references(danger_name)
+                description = self._clean_references(description)
                 
                 # Translate to English
                 danger_name = await self._translate_to_english(danger_name)
@@ -1227,15 +1297,23 @@ class ComprehensiveRecommendationsService:
                 # Translate warning signs and how_to_avoid
                 warning_signs = item.get("warning_signs", [])
                 if isinstance(warning_signs, list):
-                    warning_signs = [await self._translate_to_english(str(sign)) for sign in warning_signs]
+                    warning_signs = [self._clean_references(await self._translate_to_english(str(sign))) for sign in warning_signs]
                 elif warning_signs:
-                    warning_signs = [await self._translate_to_english(str(warning_signs))]
+                    warning_signs = [self._clean_references(await self._translate_to_english(str(warning_signs)))]
                 
                 how_to_avoid = item.get("how_to_avoid", [])
                 if isinstance(how_to_avoid, list):
-                    how_to_avoid = [await self._translate_to_english(str(advice)) for advice in how_to_avoid]
+                    how_to_avoid = [self._clean_references(await self._translate_to_english(str(advice))) for advice in how_to_avoid]
                 elif how_to_avoid:
-                    how_to_avoid = [await self._translate_to_english(str(how_to_avoid))]
+                    how_to_avoid = [self._clean_references(await self._translate_to_english(str(how_to_avoid)))]
+                
+                # Clean area/location
+                area_cleaned = item.get("location", {}).get("address", "Bacolod City") if isinstance(item.get("location"), dict) else "Bacolod City"
+                area_cleaned = self._clean_references(area_cleaned)
+                
+                # Filter out malformed areas
+                if not self._is_bacolod_related("", "", area_cleaned):
+                    continue
                 
                 rec_item = {
                     "id": item.get("id", ""),
@@ -1248,7 +1326,7 @@ class ComprehensiveRecommendationsService:
                     "how_to_avoid": how_to_avoid,
                     "severity": item.get("severity", "medium"),
                     "type_of_danger": item.get("type_of_danger"),
-                    "area": item.get("location", {}).get("address", "Bacolod City") if isinstance(item.get("location"), dict) else "Bacolod City",
+                    "area": area_cleaned if area_cleaned and area_cleaned != "Bacolod City" else "Bacolod City, Negros Occidental",
                 }
                 all_items.append(rec_item)
         

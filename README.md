@@ -8,11 +8,26 @@ An intelligent, AI-powered tourism platform designed specifically for visitors t
 - **📱 Phone Number Authentication**: Philippine phone number-based login with OTP verification (supports both phone and email)
 - **🤖 Automatic Personality Analysis**: Background social media scraping (Scrapy + Bright Data) and LLM-based personality inference; in-memory cache + BigQuery retry queue for instant personality display
 - **🎯 Personality-Driven Recommendations**: Comprehensive recommendations (tourist spots, hotels, restaurants, beaches, mountains, resorts, events, businesses) via LangChain + FAISS; optional Make.com webhooks for hotels
+  - **Smart Filtering**: Only shows specific places (not general articles/blog posts)
+  - **No Duplicates**: Deduplication by normalized place names
+  - **Quality Control**: Minimum 50% match score threshold
+  - **Data Source**: All recommendations loaded directly from InstantDB scraped content (no static JSON)
 - **💬 Interactive Chat Interface**: Chatbot-first experience with rich message formatting, clickable recommendation links, and personality-aware responses
 - **🔐 Secret Spot Discovery**: Unique, profile-based secret spots (1-2 items) matched to hidden personality traits; dedicated `/secret-recommendations` page
-- **⚠️ Safety First**: Scams and Danger Zones information for Bacolod to keep travelers safe
+- **⚠️ Safety First**: Comprehensive safety information with dedicated `/safety` page featuring:
+  - Merged correlated scams and danger zones (no duplicates)
+  - English translation for all content
+  - Filtered to show only Bacolod-related information (excludes Manila, Sulu, Marawi, etc.)
+  - Cleaned references (Tulfo → local police)
+  - Malformed data filtering
 - **📍 Precise Directions**: Every recommendation includes Google Maps links and precise navigation directions
 - **💾 InstantDB Integration**: User profiles and recommendations saved to InstantDB (optional) for real-time retrieval; BigQuery primary for analytics
+- **📊 Google Sheet Scraping**: Dynamic content scraping from Google Sheet with:
+  - Category-based organization (Accommodation, Tourist Spots, Restaurants, Scams, Danger Zones, Secret Places)
+  - Multi-entity extraction using LLM (extracts multiple hotels/restaurants from single articles)
+  - Duplicate detection to avoid re-scraping
+  - Bright Data Web Unlocker for JavaScript-heavy sites (Facebook, etc.)
+  - Automatic linked website scraping (up to 3 links per page)
 - **📊 Comprehensive Welcome Message**: Automatic personalized welcome with all recommendations in organized categories
 - **🔄 Real-Time Data Integration**: Weather, events, and news (when APIs configured); RAG routes for contextual search
 - **🗺️ Interactive Maps**: Google Maps integration for location-based exploration
@@ -426,7 +441,8 @@ This will start:
 │   │   │   ├── chat/     # MOGI chatbot interface
 │   │   │   ├── dashboard/# Main dashboard
 │   │   │   ├── map/      # Interactive maps
-│   │   │   └── secret-recommendations/  # Secret spots page
+│   │   │   ├── secret-recommendations/  # Secret spots page
+│   │   │   └── safety/   # Safety information page (scams & danger zones)
 │   │   ├── components/
 │   │   │   ├── MOGIChatbot.tsx      # Main chatbot component
 │   │   │   ├── PhoneInput.tsx        # Philippine phone input
@@ -447,9 +463,13 @@ This will start:
 │   │   ├── personality_analyzer.py # LLM personality analysis
 │   │   ├── personality_pipeline.py # Complete analysis pipeline
 │   │   ├── welcome_message_service.py # Welcome message generation
-│   │   ├── comprehensive_recommendations.py # All categories + InstantDB save
+│   │   ├── comprehensive_recommendations.py # All categories + InstantDB save + filtering
 │   │   ├── instantdb_client.py # InstantDB user/recommendation persistence
 │   │   ├── bigquery_retry_queue.py # Background BigQuery update retries
+│   │   ├── sheets_sync.py # Google Sheet scraping & entity extraction
+│   │   ├── content_scraper.py # Web scraping with Bright Data Web Unlocker
+│   │   └── services/
+│   │       └── entity_extractor.py # LLM-based multi-entity extraction
 │   │   ├── scrapers/
 │   │   │   ├── social_media_spider.py # Scrapy spiders (Facebook/Instagram)
 │   │   │   ├── proxy_middleware.py # Bright Data proxy middleware
@@ -554,6 +574,30 @@ The application is configured for deployment on:
 - **[system_architecture.html](./system_architecture.html)** - Interactive architecture: data flow, BigQuery streaming buffer solution, timelines, and code locations
 - **[Google Cloud Platform Setup](#-google-cloud-platform-setup)** - Detailed BigQuery and Cloud Storage setup instructions (see above)
 - **backend/SCRAPY_SETUP.md** - Scrapy + Bright Data Residential Proxy setup guide (if present)
+
+## 🆕 Recent Improvements
+
+### Data Quality & Filtering Enhancements
+
+**Hotels/Accommodations Filtering:**
+- Excludes general articles/blog posts (e.g., "17 Tourist Spots in Bacolod...")
+- Only shows specific hotel/accommodation entities
+- Filters out test/placeholder entries
+- Minimum 50% match score requirement
+
+**Scams & Danger Zones Improvements:**
+- **Merged Correlated Topics**: Similar scams/danger zones are combined into single entries
+- **English Translation**: All content automatically translated to English using LLM
+- **Location Filtering**: Only Bacolod-related items shown (excludes Manila, Sulu, Marawi, etc.)
+- **Reference Cleaning**: Replaces "Tulfo" references with "local police"
+- **Malformed Data Filtering**: Removes fragmented text and incorrect location entries
+- **Dedicated Safety Page**: Separate `/safety` page with filtering (All/Scams/Danger Zones)
+
+**Recommendation System:**
+- All recommendations loaded from InstantDB scraped content (no static JSON)
+- Duplicate detection and removal
+- Personality keyword matching with improved scoring algorithm
+- Source link hiding for better UX (shows Google search instead)
 
 ## 🔄 Development Workflow
 

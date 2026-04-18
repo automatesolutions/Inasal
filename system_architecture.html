@@ -282,6 +282,8 @@
             
             <div class="section" style="background:#f0f4ff;padding:15px;border-radius:8px;margin-bottom:30px;">
                 <strong>Quick navigation:</strong>
+                <a href="#complete-flow">📖 Complete Flow with Code</a> •
+                <a href="#file-connections">🔗 File Connections</a> •
                 <a href="#activate">How to Activate</a> •
                 <a href="#flow">User Flow</a> •
                 <a href="#walkthrough">Detailed Walkthrough</a> •
@@ -289,6 +291,372 @@
                 <a href="#code">Code Guide</a> •
                 <a href="#files">Key Files</a> •
                 <a href="#bigquery">BigQuery Solution</a>
+            </div>
+            
+            <!-- Complete Flow with Code Explanations -->
+            <div class="section" id="complete-flow">
+                <h2>📖 Complete Flow with Code Explanations</h2>
+                <p>This section shows you <strong>exactly</strong> what happens step-by-step, with actual code from the codebase.</p>
+                
+                <h3>🎯 Overview: What Happens When User Logs In</h3>
+                <div class="diagram" style="background:#e8f4f8;padding:20px;border-left:5px solid #667eea;">
+                    <strong>Step-by-Step Flow:</strong><br>
+                    1. User enters phone → Frontend sends OTP request<br>
+                    2. User enters OTP → Backend creates profile + starts personality analysis<br>
+                    3. User goes to /chat → Frontend loads welcome message<br>
+                    4. Backend generates recommendations → Returns to frontend<br>
+                    5. Frontend displays welcome + recommendations
+                </div>
+                
+                <h3>Step 1: User Enters Phone Number</h3>
+                <div class="layer">
+                    <p><strong>📍 Frontend Code:</strong> <code>frontend/src/app/login/page.tsx</code></p>
+                    <div class="code-block">// User clicks "Send OTP" button
+const handleSendOTP = async () => {
+  // Calls API function
+  await authApi.sendOTPPhone(phone, firstName, lastName);
+  // Shows "OTP sent" message
+};
+
+// This calls: frontend/src/lib/api.ts
+export const authApi = {
+  async sendOTPPhone(phone: string, firstName: string, lastName: string) {
+    // Makes HTTP POST request
+    return apiRequest('/api/auth/send-otp-phone', {
+      method: 'POST',
+      body: JSON.stringify({ phone, first_name: firstName, last_name: lastName })
+    });
+  }
+};</div>
+                    
+                    <p><strong>📍 Backend Code:</strong> <code>backend/app/routes/auth_routes.py</code></p>
+                    <div class="code-block">@router.post("/send-otp-phone")
+async def send_otp_phone(request: SendOTPRequest):
+    # Generate 6-digit OTP
+    otp = "000000" if settings.dev_mode else str(random.randint(100000, 999999))
+    
+    # Store in Redis with 5-minute expiration
+    await redis_client.set(f"otp:phone:{request.phone}", otp, ex=300)
+    
+    # In production: Send SMS via Twilio/other service
+    # For now: Return OTP (dev mode shows "000000")
+    return {"message": "OTP sent", "otp": otp if settings.dev_mode else None}</div>
+                    
+                    <p><strong>💡 What This Does:</strong></p>
+                    <ul class="component-list">
+                        <li>Frontend sends phone number to backend</li>
+                        <li>Backend generates OTP code</li>
+                        <li>OTP stored in Redis with key: <code>otp:phone:+639123456789</code></li>
+                        <li>OTP expires in 5 minutes</li>
+                    </ul>
+                </div>
+                
+                <h3>Step 2: User Verifies OTP</h3>
+                <div class="layer">
+                    <p><strong>📍 Frontend Code:</strong> <code>frontend/src/app/login/page.tsx</code></p>
+                    <div class="code-block">// User enters OTP and clicks "Verify & Login"
+const handleVerifyOTP = async () => {
+  const result = await authApi.verifyOTPPhone(phone, otp);
+  
+  // Store JWT token in browser localStorage
+  localStorage.setItem('token', result.token);
+  
+  // Redirect to chat page
+  router.push('/chat');
+};</div>
+                    
+                    <p><strong>📍 Backend Code:</strong> <code>backend/app/routes/auth_routes.py</code></p>
+                    <div class="code-block">@router.post("/verify-otp-phone")
+async def verify_otp_phone(request: VerifyOTPRequest):
+    # Check OTP from Redis
+    stored_otp = await redis_client.get(f"otp:phone:{request.phone}")
+    
+    if stored_otp != request.otp:
+        raise HTTPException(401, "Invalid OTP")
+    
+    # Create user profile in InstantDB/BigQuery
+    user_id = await profile_service.create_profile(
+        phone=request.phone,
+        first_name=request.first_name,
+        last_name=request.last_name
+    )
+    
+    # ⚡ START PERSONALITY ANALYSIS IN BACKGROUND
+    asyncio.create_task(_run_personality_analysis(user_id))
+    
+    # Generate JWT token
+    token = create_access_token({"user_id": user_id})
+    return {"token": token, "user_id": user_id}</div>
+                    
+                    <p><strong>📍 Personality Analysis (Background Task):</strong> <code>backend/app/routes/auth_routes.py</code></p>
+                    <div class="code-block">async def _run_personality_analysis(user_id: str):
+    """Runs in background - doesn't block login"""
+    try:
+        # 1. Search Google for user's social media profiles
+        from app.personality_pipeline import PersonalityPipeline
+        pipeline = PersonalityPipeline()
+        
+        # 2. Scrape profiles (Facebook, Instagram, etc.)
+        # 3. Analyze with LLM to extract personality traits
+        # 4. Store in cache immediately (for instant display)
+        # 5. Try to save to BigQuery (may fail due to streaming buffer)
+        # 6. If fails, add to retry queue
+        await pipeline.analyze_personality(user_id)
+    except Exception as e:
+        logger.error(f"Personality analysis failed: {e}")</div>
+                    
+                    <p><strong>💡 What This Does:</strong></p>
+                    <ul class="component-list">
+                        <li>Verifies OTP code matches Redis value</li>
+                        <li>Creates user profile in database</li>
+                        <li><strong>Starts personality analysis in background</strong> (doesn't wait for it)</li>
+                        <li>Returns JWT token immediately</li>
+                        <li>Personality analysis runs separately and updates profile when done</li>
+                    </ul>
+                </div>
+                
+                <h3>Step 3: User Goes to Chat Page</h3>
+                <div class="layer">
+                    <p><strong>📍 Frontend Code:</strong> <code>frontend/src/app/chat/page.tsx</code></p>
+                    <div class="code-block">export default function ChatPage() {
+  // Check if user is authenticated
+  if (!isAuthenticated()) {
+    router.push('/login');
+    return null;
+  }
+  
+  // Render MOGI Chatbot component
+  return &lt;MOGIChatbot /&gt;;
+}</div>
+                    
+                    <p><strong>📍 MOGI Chatbot Component:</strong> <code>frontend/src/components/MOGIChatbot.tsx</code></p>
+                    <div class="code-block">export default function MOGIChatbot() {
+  const [messages, setMessages] = useState&lt;ChatMessage[]&gt;([]);
+  
+  // ⚡ THIS RUNS WHEN COMPONENT LOADS
+  useEffect(() => {
+    const loadWelcome = async () => {
+      // Call backend API to get welcome message
+      const welcomeData = await chatApi.getWelcomeMessage();
+      
+      // Set welcome message in state
+      setMessages([{
+        role: "assistant",
+        type: "welcome",
+        content: welcomeData.content,
+        recommendations: welcomeData.recommendations,
+        personality_summary: welcomeData.personality_summary
+      }]);
+    };
+    
+    loadWelcome();
+  }, []);
+  
+  return (
+    &lt;div&gt;
+      {messages.map(msg => (
+        msg.type === "welcome" ? 
+          &lt;WelcomeMessage {...msg} /&gt; : 
+          &lt;div&gt;{msg.content}&lt;/div&gt;
+      ))}
+    &lt;/div&gt;
+  );
+}</div>
+                    
+                    <p><strong>💡 What This Does:</strong></p>
+                    <ul class="component-list">
+                        <li>Checks if user has valid JWT token</li>
+                        <li>Renders MOGIChatbot component</li>
+                        <li>Component automatically calls <code>getWelcomeMessage()</code> API</li>
+                        <li>Displays welcome message with recommendations</li>
+                    </ul>
+                </div>
+                
+                <h3>Step 4: Backend Generates Welcome Message</h3>
+                <div class="layer">
+                    <p><strong>📍 Backend Route:</strong> <code>backend/app/routes/chat_routes.py</code></p>
+                    <div class="code-block">@router.get("/welcome")
+async def get_welcome_message(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    
+    # ⏳ WAIT for personality analysis to complete (up to 30 seconds)
+    personality = None
+    for attempt in range(60):  # 60 attempts × 0.5s = 30 seconds max
+        profile = await profile_service.get_profile(user_id)
+        if profile:
+            # Check if personality has been analyzed (any trait > 0.5)
+            traits = profile.personality.model_dump()
+            if any(v > 0.5 for v in traits.values()):
+                personality = profile.personality
+                break
+        await asyncio.sleep(0.5)  # Wait 0.5 seconds between checks
+    
+    # Generate welcome message text
+    from app.welcome_message_service import WelcomeMessageService
+    welcome_service = WelcomeMessageService()
+    welcome_text = await welcome_service.generate_welcome_message(
+        user_name=profile.name,
+        personality=personality
+    )
+    
+    # Get ALL recommendations
+    from app.comprehensive_recommendations import ComprehensiveRecommendationsService
+    recommendations_service = ComprehensiveRecommendationsService()
+    recommendations = await recommendations_service.get_all_recommendations(user_id)
+    
+    return {
+        "content": welcome_text,
+        "recommendations": recommendations,
+        "personality_summary": welcome_service.get_personality_summary(personality)
+    }</div>
+                    
+                    <p><strong>💡 What This Does:</strong></p>
+                    <ul class="component-list">
+                        <li>Extracts user_id from JWT token</li>
+                        <li><strong>Polls for personality analysis</strong> (waits up to 30 seconds)</li>
+                        <li>Gets user profile (from InstantDB → BigQuery → cache)</li>
+                        <li>Generates personalized welcome message using LLM</li>
+                        <li>Fetches recommendations for all categories</li>
+                        <li>Returns everything to frontend</li>
+                    </ul>
+                </div>
+                
+                <h3>Step 5: Recommendations Generation (Detailed)</h3>
+                <div class="layer">
+                    <p><strong>📍 Main Function:</strong> <code>backend/app/comprehensive_recommendations.py</code></p>
+                    <div class="code-block">async def get_all_recommendations(self, user_id: str) -> Dict:
+    # 1. Get user profile with personality
+    profile = await profile_service.get_profile(user_id)
+    personality = profile.personality
+    
+    # 2. Load scraped content from InstantDB for each category
+    tourist_spots = await self._get_tourist_spots(profile, location, curated_details)
+    hotels = await self._get_hotels(profile, location, curated_details)
+    restaurants = await self._get_restaurants(profile, location, curated_details)
+    # ... etc for beaches, mountains, resorts, etc.
+    
+    # 3. Get secret spots (unique, profile-based)
+    secret_spots = await self._get_secret_spots(profile, location, ...)
+    
+    # 4. Get safety info (scams & danger zones)
+    places_to_avoid = await self._get_scams_and_danger_zones(location, ...)
+    
+    # 5. Save all to InstantDB
+    await self._save_recommendations_to_instantdb(user_id, recommendations)
+    
+    return recommendations</div>
+                    
+                    <p><strong>📍 Example: How Hotels Are Filtered:</strong> <code>backend/app/comprehensive_recommendations.py</code></p>
+                    <div class="code-block">async def _get_hotels(self, profile, location, curated_details):
+    # 1. Load scraped content from InstantDB
+    scraped_content = await self._get_scraped_content_for_category("accommodation_hotels")
+    
+    seen_names = set()  # Track duplicates
+    formatted_hotels = []
+    
+    for item in scraped_content:
+        hotel_name = item.get("hotel_name") or item.get("name")
+        
+        # FILTER 1: Skip if no hotel name
+        if not hotel_name:
+            continue
+        
+        # FILTER 2: Skip general articles/blog posts
+        if self._is_general_article_or_guide(hotel_name, description):
+            continue  # Skip "17 Tourist Spots in Bacolod..." type articles
+        
+        # FILTER 3: Remove duplicates
+        name_key = " ".join(hotel_name.lower().strip().split())
+        if name_key in seen_names:
+            continue
+        seen_names.add(name_key)
+        
+        # FILTER 4: Calculate match score with personality
+        match_score = self._calculate_match_score(rec_item, profile.personality)
+        if match_score <= 0.5:  # Only show if match > 50%
+            continue
+        
+        # Format and add to list
+        formatted_hotels.append(formatted_item)
+    
+    return formatted_hotels</div>
+                    
+                    <p><strong>💡 What This Does:</strong></p>
+                    <ul class="component-list">
+                        <li>Loads hotel data from InstantDB (scraped from Google Sheet)</li>
+                        <li><strong>Filters out articles/blog posts</strong> (only specific hotels)</li>
+                        <li><strong>Removes duplicates</strong> by normalized name</li>
+                        <li><strong>Calculates personality match score</strong> (0.0 to 1.0)</li>
+                        <li>Only includes hotels with match score > 50%</li>
+                        <li>Returns filtered list</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- File Connections Diagram -->
+            <div class="section" id="file-connections">
+                <h2>🔗 File Connections & Dependencies</h2>
+                <p>This diagram shows how files call each other and what data flows between them.</p>
+                
+                <h3>Frontend → Backend Flow</h3>
+                <div class="diagram" style="background:#fff;padding:20px;border:2px solid #667eea;">
+                    <strong>Request Flow:</strong><br><br>
+                    <code>frontend/src/app/login/page.tsx</code><br>
+                    └─→ <code>frontend/src/lib/api.ts</code> (authApi.sendOTPPhone)<br>
+                        └─→ HTTP POST <code>/api/auth/send-otp-phone</code><br>
+                            └─→ <code>backend/app/routes/auth_routes.py</code> (send_otp_phone function)<br>
+                                └─→ <code>backend/app/redis_client.py</code> (stores OTP)<br><br>
+                    
+                    <code>frontend/src/components/MOGIChatbot.tsx</code><br>
+                    └─→ <code>frontend/src/lib/api.ts</code> (chatApi.getWelcomeMessage)<br>
+                        └─→ HTTP GET <code>/api/chat/welcome</code><br>
+                            └─→ <code>backend/app/routes/chat_routes.py</code> (get_welcome_message function)<br>
+                                ├─→ <code>backend/app/user_profile.py</code> (get_profile)<br>
+                                ├─→ <code>backend/app/welcome_message_service.py</code> (generate_welcome_message)<br>
+                                └─→ <code>backend/app/comprehensive_recommendations.py</code> (get_all_recommendations)<br>
+                                    ├─→ <code>backend/app/instantdb_client.py</code> (loads scraped content)<br>
+                                    └─→ <code>backend/app/comprehensive_recommendations.py</code> (_get_hotels, _get_restaurants, etc.)
+                </div>
+                
+                <h3>Backend Internal Flow</h3>
+                <div class="diagram" style="background:#fff;padding:20px;border:2px solid #764ba2;">
+                    <strong>Recommendation Generation Internal Flow:</strong><br><br>
+                    <code>comprehensive_recommendations.py</code> (get_all_recommendations)<br>
+                    │<br>
+                    ├─→ <code>user_profile.py</code> (get_profile)<br>
+                    │   ├─→ <code>instantdb_client.py</code> (get_user_profile) ← tries first<br>
+                    │   ├─→ <code>bigquery_client.py</code> (get_user_profile) ← fallback<br>
+                    │   └─→ <code>user_profile.py</code> (_personality_cache) ← if DB has defaults<br>
+                    │<br>
+                    ├─→ <code>comprehensive_recommendations.py</code> (_get_hotels)<br>
+                    │   ├─→ <code>instantdb_client.py</code> (get_scraped_content_by_category)<br>
+                    │   ├─→ <code>comprehensive_recommendations.py</code> (_is_general_article_or_guide) ← filtering<br>
+                    │   ├─→ <code>comprehensive_recommendations.py</code> (_calculate_match_score) ← personality matching<br>
+                    │   └─→ Returns filtered list<br>
+                    │<br>
+                    ├─→ <code>comprehensive_recommendations.py</code> (_get_restaurants)<br>
+                    │   └─→ Same flow as hotels<br>
+                    │<br>
+                    └─→ <code>instantdb_client.py</code> (save_recommendations_to_instantdb) ← saves final results
+                </div>
+                
+                <h3>Personality Analysis Flow</h3>
+                <div class="diagram" style="background:#fff;padding:20px;border:2px solid #28a745;">
+                    <strong>Background Task Flow:</strong><br><br>
+                    <code>auth_routes.py</code> (verify_otp_phone)<br>
+                    └─→ <code>asyncio.create_task</code> (_run_personality_analysis)<br>
+                        └─→ <code>personality_pipeline.py</code> (analyze_personality)<br>
+                            ├─→ <code>social_scraper.py</code> (search_and_scrape_profiles)<br>
+                            │   └─→ <code>bright_data_client.py</code> (Google Search API)<br>
+                            │<br>
+                            ├─→ <code>personality_analyzer.py</code> (analyze_with_llm)<br>
+                            │   └─→ <code>llm_factory.py</code> (get_chat_llm) ← OpenAI GPT<br>
+                            │<br>
+                            ├─→ <code>user_profile.py</code> (_personality_cache) ← stores immediately<br>
+                            ├─→ <code>bigquery_client.py</code> (update_user_profile) ← tries to save<br>
+                            │   └─→ If fails: <code>bigquery_retry_queue.py</code> (add_retry) ← queues for later<br>
+                            └─→ <code>bigquery_retry_queue.py</code> (background task) ← retries every 2 min
+                </div>
             </div>
             
             <!-- How to Activate -->
@@ -834,6 +1202,119 @@ useEffect(() => {
                         <td>Starts with app; runs every 2 min</td>
                         <td>Retries failed BigQuery updates (streaming buffer blocks immediate writes)</td>
                     </tr>
+                    <tr>
+                        <td><code>comprehensive_recommendations.py</code></td>
+                        <td>GET /api/chat/welcome</td>
+                        <td>Loads from InstantDB, filters duplicates/articles, merges correlated topics, translates content</td>
+                    </tr>
+                    <tr>
+                        <td><code>sheets_sync.py</code></td>
+                        <td>POST /api/admin/sync-sheet (manual trigger)</td>
+                        <td>Scrapes Google Sheet URLs, extracts entities via LLM, saves to InstantDB with duplicate detection</td>
+                    </tr>
+                    <tr>
+                        <td><code>services/entity_extractor.py</code></td>
+                        <td>Called by sheets_sync.py</td>
+                        <td>LLM-based multi-entity extraction (multiple hotels/restaurants from single articles)</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Safety Page Flow -->
+            <div class="section">
+                <h2>⚠️ Safety Information Flow</h2>
+                
+                <h3>Safety Page Generation</h3>
+                <div class="diagram">
+User Visits /safety Page
+    │
+    ├─→ Frontend: GET /api/chat/welcome
+    │
+    ├─→ Backend: _get_scams_and_danger_zones()
+    │
+    ├─→ Load from InstantDB:
+    │      ├─→ scams collection
+    │      └─→ dangerous_areas collection
+    │
+    ├─→ Filter & Clean:
+    │      ├─→ Filter non-Bacolod locations
+    │      │      ├─→ Exclude: Manila, Sulu, Marawi, etc.
+    │      │      └─→ Exclude: Malformed location data
+    │      ├─→ Clean references:
+    │      │      └─→ "Tulfo" → "local police"
+    │      ├─→ Translate to English (if needed)
+    │      └─→ Merge correlated topics
+    │
+    ├─→ Format for Display:
+    │      ├─→ Group by type (Scam / Danger Zone)
+    │      ├─→ Add severity indicators
+    │      ├─→ Include warning signs & how to avoid
+    │      └─→ Add safety advice
+    │
+    └─→ Return to Frontend
+           Displayed on /safety page with filters:
+           - All / Scams / Danger Zones
+           - Color-coded by severity
+           - Detailed safety information
+                </div>
+            </div>
+            
+            <!-- Data Quality Improvements -->
+            <div class="section">
+                <h2>✨ Data Quality & Filtering Improvements</h2>
+                
+                <h3>Recommendation Filtering</h3>
+                <table>
+                    <tr>
+                        <th>Category</th>
+                        <th>Filtering Rules</th>
+                    </tr>
+                    <tr>
+                        <td>Hotels/Accommodations</td>
+                        <td>
+                            <ul>
+                                <li>Exclude general articles/blog posts</li>
+                                <li>Only specific hotel entities (hotel_name field)</li>
+                                <li>Remove duplicates by normalized name</li>
+                                <li>Match score > 50%</li>
+                                <li>Exclude test/placeholder entries</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Tourist Spots</td>
+                        <td>
+                            <ul>
+                                <li>Only specific attractions (not raw website pages)</li>
+                                <li>Hide source content links</li>
+                                <li>Remove duplicate places</li>
+                                <li>Exclude restaurants</li>
+                                <li>Match score > 50%</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Restaurants</td>
+                        <td>
+                            <ul>
+                                <li>Only specific restaurants (restaurant_name field)</li>
+                                <li>Remove duplicates</li>
+                                <li>Match score > 50%</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Scams & Danger Zones</td>
+                        <td>
+                            <ul>
+                                <li>Merge correlated topics</li>
+                                <li>Translate to English</li>
+                                <li>Filter non-Bacolod locations</li>
+                                <li>Clean references (Tulfo → local police)</li>
+                                <li>Remove malformed data</li>
+                            </ul>
+                        </td>
+                    </tr>
                 </table>
             </div>
             
@@ -852,8 +1333,10 @@ useEffect(() => {
                         <li>Recommendation Categories: Tourist Spots → Hotels → Restaurants → Beaches → Mountains → Resorts → Secret Spot</li>
                         <li>Secret Spot Badge (Profile-based, unique)</li>
                         <li>Secret Recommendations Page (<code>/secret-recommendations</code>)</li>
-                        <li>Scams & Danger Zones Safety Information</li>
+                        <li>Safety Information Page (<code>/safety</code>) with filtering</li>
+                        <li>Scams & Danger Zones (merged, translated, filtered)</li>
                         <li>Google Maps Integration with Precise Directions</li>
+                        <li>Smart Recommendation Filtering (no duplicates, quality control)</li>
                     </ul>
                 </div>
                 
@@ -865,8 +1348,10 @@ useEffect(() => {
                         <li>Personality Analysis Pipeline</li>
                         <li>Chat & Recommendation Engine (LangChain)</li>
                         <li>Comprehensive Recommendations Service (All Categories)</li>
+                        <li>Smart Filtering: Excludes articles, removes duplicates, quality control</li>
                         <li>Secret Spot Discovery (Profile-based, 1-2 unique items)</li>
-                        <li>Scams & Danger Zones Safety Data</li>
+                        <li>Scams & Danger Zones: Merging, translation, location filtering</li>
+                        <li>Google Sheet Scraping & Entity Extraction (multi-entity LLM extraction)</li>
                         <li>Precise Directions Generation (Google Maps)</li>
                         <li><span class="highlight">InstantDB Recommendation Persistence</span></li>
                         <li><span class="highlight">BigQuery Data Persistence</span></li>
@@ -1218,21 +1703,38 @@ User Requests Recommendations
     │
     ├─→ Load User Profile & Personality
     │
-    ├─→ Generate by Category:
-    │      ├─→ Tourist Spots (7 items)
-    │      ├─→ Hotels (5 items)
-    │      ├─→ Restaurants (7 items)
-    │      ├─→ Beaches (5 items)
-    │      ├─→ Mountains (5 items)
-    │      ├─→ Resorts (5 items)
+    ├─→ Load Scraped Content from InstantDB (by category)
+    │
+    ├─→ Generate by Category with Smart Filtering:
+    │      ├─→ Tourist Spots
+    │      │      ├─→ Filter: Only specific places (not articles)
+    │      │      ├─→ Remove duplicates
+    │      │      ├─→ Exclude restaurants
+    │      │      └─→ Match score > 50%
+    │      ├─→ Hotels/Accommodations
+    │      │      ├─→ Filter: Only specific hotels (not blog posts)
+    │      │      ├─→ Exclude general articles ("Tourist Spots in Bacolod...")
+    │      │      ├─→ Remove duplicates
+    │      │      └─→ Match score > 50%
+    │      ├─→ Restaurants
+    │      │      ├─→ Filter: Only specific restaurants
+    │      │      ├─→ Remove duplicates
+    │      │      └─→ Match score > 50%
+    │      ├─→ Beaches, Mountains, Resorts
+    │      │      └─→ Same filtering rules applied
     │      ├─→ Secret Spot (1-2 unique items, profile-based)
-    │      └─→ Scams & Danger Zones (Safety info)
+    │      └─→ Scams & Danger Zones
+    │             ├─→ Merge correlated topics
+    │             ├─→ Translate to English
+    │             ├─→ Filter non-Bacolod locations
+    │             ├─→ Clean references (Tulfo → local police)
+    │             └─→ Remove malformed data
     │
     ├─→ Format Each Recommendation:
     │      ├─→ Add Google Maps link
     │      ├─→ Add precise directions link
-    │      ├─→ Add website/booking links
-    │      └─→ Calculate match score
+    │      ├─→ Hide source content links (show Google search instead)
+    │      └─→ Calculate match score (personality keywords)
     │
     ├─→ Save ALL to InstantDB ✅
     │      Collection: user_recommendations
@@ -1240,6 +1742,7 @@ User Requests Recommendations
     │
     └─→ Return to Frontend
            Displayed in order: Tourist Spots → Hotels → Restaurants → ...
+           Safety info shown as link to /safety page
            Secret Spot shown LAST (unique, profile-based)
                 </div>
                 
@@ -1355,6 +1858,232 @@ poetry run uvicorn app.main:app --reload --port 8000
                     <li><span class="success-text">✅ "Successfully updated user profile"</span> — BigQuery accepted immediately</li>
                     <li><span class="warning-text">⚠️ "Added to retry queue"</span> — Will save in background</li>
                 </ul>
+            </div>
+            
+            <!-- Code Deep Dive -->
+            <div class="section">
+                <h2>💻 Code Deep Dive: Key Functions Explained</h2>
+                
+                <h3>1. How get_profile() Works (The Cache System)</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/user_profile.py</code></p>
+                    <div class="code-block">async def get_profile(self, user_id: str) -> Optional[UserProfile]:
+    """
+    Gets user profile with this priority:
+    1. InstantDB (fastest, real-time)
+    2. BigQuery (persistent storage)
+    3. In-memory cache (if BigQuery has defaults)
+    """
+    
+    # STEP 1: Try InstantDB first
+    instantdb_profile = await instantdb_client.get_user_profile(user_id)
+    if instantdb_profile:
+        return instantdb_profile
+    
+    # STEP 2: Try BigQuery
+    bq_profile = await bigquery_client.get_user_profile(user_id)
+    if bq_profile:
+        # Check if personality is analyzed
+        traits = bq_profile.personality.model_dump()
+        all_default = all(v == 0.5 for v in traits.values())
+        
+        # STEP 3: If BigQuery has defaults, check cache
+        if all_default and user_id in self._personality_cache:
+            # Use cached personality (analyzed but not yet saved to DB)
+            cached_personality = self._personality_cache[user_id]
+            bq_profile.personality = cached_personality
+            return bq_profile
+        
+        return bq_profile
+    
+    return None</div>
+                    
+                    <p><strong>💡 Why This Design:</strong></p>
+                    <ul class="component-list">
+                        <li><strong>InstantDB</strong>: Fastest, used for real-time updates</li>
+                        <li><strong>BigQuery</strong>: Persistent storage, but has 90-minute streaming buffer</li>
+                        <li><strong>Cache</strong>: Solves the streaming buffer problem - shows analyzed personality immediately</li>
+                        <li>Cache is cleared once BigQuery successfully updates</li>
+                    </ul>
+                </div>
+                
+                <h3>2. How Personality Matching Works</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/comprehensive_recommendations.py</code></p>
+                    <div class="code-block">def _calculate_match_score(self, item: Dict, personality) -> float:
+    """
+    Calculates how well an item matches user's personality.
+    Returns score from 0.0 to 1.0 (0% to 100% match).
+    """
+    
+    # Check if item has personality keywords (extracted by LLM from scraped content)
+    if "personality_keywords" in item:
+        pk = item["personality_keywords"]
+        # pk looks like: {"adventurous": 0.8, "foodie": 0.6, "cultural": 0.3}
+        
+        total_score = 0.0
+        count = 0
+        
+        # Compare each trait
+        for trait_name in ["adventurous", "cultural", "foodie", "nature_lover", "history_buff", "social"]:
+            item_value = pk.get(trait_name, 0.0)  # Item's trait value
+            user_value = getattr(personality, trait_name, 0.5)  # User's trait value
+            
+            # Calculate match using TWO methods:
+            # 1. Magnitude Match (70% weight): Both high = good match
+            magnitude_match = user_value * item_value
+            
+            # 2. Similarity (30% weight): Close values = good match
+            similarity = 1.0 - abs(user_value - item_value)
+            
+            # Combine both
+            combined_score = magnitude_match * 0.7 + similarity * 0.3
+            
+            total_score += combined_score
+            count += 1
+        
+        # Average all traits
+        score = total_score / count if count > 0 else 0.5
+        
+        # Scale to 0.1-1.0 range (10%-100%)
+        scaled_score = 0.1 + (score * 0.9)
+        return min(1.0, max(0.1, scaled_score))
+    
+    # Fallback: Use type/tags matching
+    return 0.5</div>
+                    
+                    <p><strong>💡 Example Calculation:</strong></p>
+                    <div class="code-block">User: adventurous=0.8, foodie=0.6
+Hotel: personality_keywords={"adventurous": 0.9, "foodie": 0.7}
+
+For "adventurous":
+  magnitude_match = 0.8 × 0.9 = 0.72
+  similarity = 1.0 - |0.8 - 0.9| = 0.9
+  combined = 0.72 × 0.7 + 0.9 × 0.3 = 0.774
+
+For "foodie":
+  magnitude_match = 0.6 × 0.7 = 0.42
+  similarity = 1.0 - |0.6 - 0.7| = 0.9
+  combined = 0.42 × 0.7 + 0.9 × 0.3 = 0.594
+
+Average = (0.774 + 0.594) / 2 = 0.684
+Scaled = 0.1 + (0.684 × 0.9) = 0.716 = 71.6% match</div>
+                </div>
+                
+                <h3>3. How Scraped Content is Loaded</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/comprehensive_recommendations.py</code></p>
+                    <div class="code-block">async def _get_scraped_content_for_category(self, category: str) -> List[Dict]:
+    """
+    Loads scraped content from InstantDB for a specific category.
+    This content was scraped from Google Sheet URLs and saved by sheets_sync.py
+    """
+    try:
+        from app.instantdb_client import instantdb_client
+        
+        # Map category name to InstantDB collection name
+        # Example: "accommodation_hotels" → "scraped_content_accommodation_hotels"
+        collection_name = f"scraped_content_{category}"
+        
+        # Query InstantDB
+        scraped = await instantdb_client.get_scraped_content_by_category(category)
+        
+        logger.info(f"Loaded {len(scraped)} items for {category}")
+        return scraped
+        
+    except Exception as e:
+        logger.warning(f"Could not load scraped content: {e}")
+        return []  # Return empty list if fails</div>
+                    
+                    <p><strong>💡 Data Structure Example:</strong></p>
+                    <div class="code-block"># What's stored in InstantDB for a hotel:
+{
+  "id": "uuid-here",
+  "hotel_name": "L'Fisher Hotel",
+  "description": "A modern hotel in the heart of Bacolod...",
+  "address": "Lacson Street, Bacolod City",
+  "location": {
+    "latitude": 10.6769,
+    "longitude": 122.9503,
+    "address": "Lacson Street, Bacolod City"
+  },
+  "personality_keywords": {
+    "adventurous": 0.3,
+    "cultural": 0.7,
+    "foodie": 0.5,
+    "nature_lover": 0.2,
+    "history_buff": 0.6,
+    "social": 0.8
+  },
+  "rating": 4.5,
+  "amenities": ["WiFi", "Pool", "Restaurant"],
+  "url": "https://original-scraped-url.com",
+  "category": "accommodation_hotels"
+}</div>
+                </div>
+                
+                <h3>4. How Filtering Works (Hotels Example)</h3>
+                <div class="layer">
+                    <p><strong>File:</strong> <code>backend/app/comprehensive_recommendations.py</code> - <code>_get_hotels()</code></p>
+                    <div class="code-block">async def _get_hotels(self, profile, location, curated_details):
+    # STEP 1: Load all scraped hotels from InstantDB
+    scraped_content = await self._get_scraped_content_for_category("accommodation_hotels")
+    
+    seen_names = set()  # Track duplicates
+    MIN_MATCH = 0.5  # 50% minimum match score
+    formatted_hotels = []
+    
+    for item in scraped_content:
+        # STEP 2: Extract hotel name
+        hotel_name = item.get("hotel_name") or item.get("name") or item.get("title")
+        
+        # FILTER 1: Skip if no name
+        if not hotel_name:
+            continue
+        
+        # FILTER 2: Skip general articles
+        # This catches things like "17 Tourist Spots in Bacolod..."
+        if self._is_general_article_or_guide(hotel_name, description):
+            logger.debug(f"Skipping article: {hotel_name[:60]}...")
+            continue
+        
+        # FILTER 3: Remove duplicates
+        # Normalize name: "L'Fisher Hotel" → "lfisher hotel"
+        name_key = " ".join(hotel_name.lower().strip().split())
+        if name_key in seen_names:
+            continue  # Already seen this hotel
+        seen_names.add(name_key)
+        
+        # STEP 3: Build recommendation item
+        rec_item = {
+            "name": hotel_name,
+            "description": item.get("description", ""),
+            "address": item.get("address", ""),
+            "personality_keywords": item.get("personality_keywords", {}),
+            "url": "",  # Hide source link
+        }
+        
+        # STEP 4: Calculate personality match score
+        match_score = self._calculate_match_score(rec_item, profile.personality)
+        
+        # FILTER 4: Only include if match > 50%
+        if match_score <= MIN_MATCH:
+            continue
+        
+        # STEP 5: Format and add to results
+        formatted_item = self._format_recommendation(rec_item, match_score, hide_source_link=True)
+        formatted_hotels.append(formatted_item)
+    
+    return formatted_hotels</div>
+                    
+                    <p><strong>💡 Filtering Results:</strong></p>
+                    <ul class="component-list">
+                        <li><strong>Before filtering:</strong> 50 items (includes articles, duplicates, low matches)</li>
+                        <li><strong>After filtering:</strong> 11 items (only specific hotels, no duplicates, match > 50%)</li>
+                        <li>Each item has match score (e.g., "Match: 73%")</li>
+                        <li>Source links are hidden (shows Google search instead)</li>
+                    </ul>
+                </div>
             </div>
             
             <!-- Files to Review -->

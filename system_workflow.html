@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bacolod Tourist – System Workflow (Educational)</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --accent: #38bdf8;
+            --accent2: #a78bfa;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        header {
+            text-align: center;
+            padding: 48px 24px;
+            border-bottom: 1px solid var(--surface);
+        }
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 8px;
+        }
+        header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+        h2 {
+            color: var(--accent);
+            margin-top: 48px;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+        }
+        h3 {
+            color: var(--accent2);
+            margin-top: 28px;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+        p { margin-bottom: 12px; color: var(--text); }
+        .flowchart-wrap {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        .flowchart-wrap svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+        }
+        .node-user { fill: #34d399; }
+        .node-frontend { fill: #38bdf8; }
+        .node-backend { fill: #a78bfa; }
+        .node-service { fill: #f59e0b; }
+        .node-db { fill: #64748b; }
+        .node-arrow { stroke: #94a3b8; stroke-width: 2; fill: none; }
+        .node-text { fill: #0f172a; font-family: inherit; font-size: 12px; font-weight: 600; text-anchor: middle; }
+        .node-text-small { fill: #0f172a; font-family: inherit; font-size: 10px; text-anchor: middle; }
+        .label-text { fill: #94a3b8; font-family: inherit; font-size: 10px; }
+        .code-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .code-block .comment { color: #64748b; }
+        .code-block .keyword { color: #a78bfa; }
+        .code-block .string { color: #34d399; }
+        .code-block .func { color: #38bdf8; }
+        .code-block .num { color: #fbbf24; }
+        .learn {
+            background: rgba(56, 189, 248, 0.12);
+            border-left: 4px solid var(--accent);
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .learn strong { color: var(--accent); }
+        .step-list { list-style: none; }
+        .step-list li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 12px;
+        }
+        .step-list li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        .step-list li.step-alt::before { background: var(--accent2); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: var(--surface);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th {
+            background: #334155;
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+        tr:last-child td { border-bottom: none; }
+        code { background: #334155; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: 'JetBrains Mono', monospace; }
+        .detail-block {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 16px 0;
+            border: 1px solid #334155;
+        }
+        .detail-block h4 { color: var(--accent2); margin-bottom: 10px; font-size: 1rem; }
+        .detail-block ul { margin: 8px 0 8px 20px; }
+        .detail-block li { margin-bottom: 6px; }
+        .file-func-table { font-size: 0.9rem; margin: 12px 0; width: 100%; }
+        .file-func-table th, .file-func-table td { padding: 8px 12px; vertical-align: top; border-bottom: 1px solid #334155; }
+        .file-func-table th { color: var(--accent2); font-weight: 600; background: #1e293b; }
+        .footnote {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid var(--surface);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bacolod Tourist – System Workflow</h1>
+            <p>Detailed flowcharts and code walkthrough so you can see exactly how requests move through the app. This guide is intentionally verbose for learning.</p>
+        </header>
+
+        <!-- ========== 1. HIGH-LEVEL REQUEST FLOW ========== -->
+        <section>
+            <h2>1. High-level request flow</h2>
+            <p>Every user action (login, chat, recommendations) follows this path: the browser sends HTTP requests to your Next.js app; Next.js (or the client) calls the FastAPI backend; the backend talks to internal services (Redis, InstantDB, Make.com, BigQuery, etc.) and returns JSON. The frontend never holds database credentials or talks to Redis directly—all of that stays on the server.</p>
+            <div class="flowchart-wrap">
+                <svg viewBox="0 0 520 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                            <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <rect x="20" y="70" width="80" height="44" rx="6" class="node-user"/>
+                    <text x="60" y="97" class="node-text">User</text>
+                    <rect x="140" y="70" width="100" height="44" rx="6" class="node-frontend"/>
+                    <text x="190" y="97" class="node-text">Next.js</text>
+                    <rect x="280" y="70" width="100" height="44" rx="6" class="node-backend"/>
+                    <text x="330" y="97" class="node-text">FastAPI</text>
+                    <rect x="400" y="70" width="100" height="44" rx="6" class="node-service"/>
+                    <text x="450" y="97" class="node-text">Services</text>
+                    <path d="M100 92 L140 92" class="node-arrow" marker-end="url(#arrow)"/>
+                    <path d="M240 92 L280 92" class="node-arrow" marker-end="url(#arrow)"/>
+                    <path d="M380 92 L400 92" class="node-arrow" marker-end="url(#arrow)"/>
+                    <text x="120" y="85" class="label-text">HTTP</text>
+                    <text x="260" y="85" class="label-text">/api/*</text>
+                    <text x="340" y="85" class="label-text">Redis, DB, Make</text>
+                    <rect x="20" y="140" width="480" height="48" rx="6" fill="#334155"/>
+                    <text x="260" y="165" class="node-text-small" fill="#e2e8f0">Services: Redis (OTP), InstantDB (profiles/personality), Make.com (chat), BigQuery/Storage (analytics)</text>
+                </svg>
+            </div>
+            <div class="learn">
+                <strong>Why this matters:</strong> The frontend never talks to Redis or the database directly. All sensitive work (tokens, profile creation, AI) happens in the backend so secrets and logic stay server-side.
+            </div>
+            <h3>What each layer does</h3>
+            <ul class="step-list">
+                <li><strong>User / Browser:</strong> The person using the app. Actions (e.g. “Log in with phone”, “Send chat message”) become HTTP requests. The frontend often sends these with <code>Authorization: Bearer &lt;JWT&gt;</code> after login.</li>
+                <li><strong>Next.js (frontend):</strong> Serves the React UI and can proxy or call the backend. API calls typically go to a base URL like <code>https://your-api.com</code> or <code>http://localhost:8000</code>. The frontend stores the JWT (e.g. in <code>localStorage</code>) and sends it on every request that needs authentication.</li>
+                <li><strong>FastAPI (backend):</strong> Defines routes under <code>/api/auth/*</code>, <code>/api/chat</code>, <code>/api/recommendations</code>, etc. It validates the JWT (for protected routes), reads/writes Redis and InstantDB, calls Make.com webhooks or in-app services, and returns JSON. All environment secrets (Redis URL, JWT secret, Make.com webhook URLs) live in backend config.</li>
+                <li><strong>Services:</strong> Redis (OTP storage, optional caching), InstantDB (user profiles and personality), Make.com (optional chat/recommendations workflows), BigQuery and Cloud Storage (analytics and assets). The backend is the only component that connects to these.</li>
+            </ul>
+        </section>
+
+        <!-- ========== 2. AUTH WORKFLOW (PHONE OTP) ========== -->
+        <section>
+            <h2>2. Auth workflow (phone OTP)</h2>
+            <p>Phone login is a two-step process: (1) user enters phone number and name, backend stores an OTP in Redis and returns success; (2) user enters the OTP, backend verifies it, creates a user profile in InstantDB, returns a JWT and <code>user_id</code>, and starts the personality analysis pipeline in the background so the user does not wait for it. In development the app uses a fixed dummy OTP (<code>000000</code>); in production you would send a real OTP via SMS (e.g. Twilio).</p>
+            <div class="flowchart-wrap">
+                <svg viewBox="0 0 600 320" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                            <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <rect x="10" y="10" width="90" height="36" rx="6" class="node-user"/>
+                    <text x="55" y="33" class="node-text-small">User: phone</text>
+                    <rect x="120" y="10" width="90" height="36" rx="6" class="node-frontend"/>
+                    <text x="165" y="33" class="node-text-small">POST send-otp</text>
+                    <rect x="230" y="10" width="100" height="36" rx="6" class="node-backend"/>
+                    <text x="280" y="28" class="node-text-small">auth_routes.py</text>
+                    <text x="280" y="40" class="node-text-small">send_otp_phone</text>
+                    <rect x="350" y="10" width="70" height="36" rx="6" class="node-db"/>
+                    <text x="385" y="33" class="node-text-small">Redis</text>
+                    <path d="M100 28 L120 28" class="node-arrow" marker-end="url(#arrow2)"/>
+                    <path d="M210 28 L230 28" class="node-arrow" marker-end="url(#arrow2)"/>
+                    <path d="M330 28 L350 28" class="node-arrow" marker-end="url(#arrow2)"/>
+                    <text x="265" y="22" class="label-text">store OTP</text>
+                    <rect x="10" y="70" width="90" height="36" rx="6" class="node-user"/>
+                    <text x="55" y="93" class="node-text-small">User: OTP</text>
+                    <rect x="120" y="70" width="100" height="36" rx="6" class="node-frontend"/>
+                    <text x="170" y="93" class="node-text-small">POST verify-otp</text>
+                    <rect x="240" y="70" width="100" height="36" rx="6" class="node-backend"/>
+                    <text x="290" y="83" class="node-text-small">auth_routes.py</text>
+                    <text x="290" y="95" class="node-text-small">verify_otp_phone</text>
+                    <path d="M100 88 L120 88" class="node-arrow" marker-end="url(#arrow2)"/>
+                    <path d="M220 88 L240 88" class="node-arrow" marker-end="url(#arrow2)"/>
+                    <rect x="240" y="118" width="180" height="70" rx="6" fill="#334155"/>
+                    <text x="330" y="138" class="node-text-small" fill="#e2e8f0">1. Get OTP from Redis</text>
+                    <text x="330" y="155" class="node-text-small" fill="#e2e8f0">2. Create profile (InstantDB)</text>
+                    <text x="330" y="172" class="node-text-small" fill="#e2e8f0">3. create_task(personality)</text>
+                    <text x="330" y="189" class="node-text-small" fill="#e2e8f0">4. Return JWT + user_id</text>
+                    <path d="M290 106 L290 118" class="node-arrow" marker-end="url(#arrow2)"/>
+                    <rect x="10" y="210" width="90" height="36" rx="6" class="node-service"/>
+                    <text x="55" y="233" class="node-text-small">Background</text>
+                    <rect x="120" y="210" width="140" height="36" rx="6" class="node-backend"/>
+                    <text x="190" y="223" class="node-text-small">personality_pipeline.py</text>
+                    <text x="190" y="235" class="node-text-small">analyze_personality_from_social_media</text>
+                    <path d="M240 88 L240 200 L120 228" class="node-arrow" stroke-dasharray="4 4" marker-end="url(#arrow2)"/>
+                    <text x="130" y="205" class="label-text">asyncio.create_task</text>
+                </svg>
+            </div>
+            <h3>File and function reference (Auth workflow)</h3>
+            <table class="file-func-table">
+                <tr><th>Step</th><th>Folder</th><th>File</th><th>Function</th></tr>
+                <tr><td>Send OTP</td><td><code>backend/app/routes/</code></td><td><code>auth_routes.py</code></td><td><code>send_otp_phone()</code></td></tr>
+                <tr><td>Verify OTP</td><td><code>backend/app/routes/</code></td><td><code>auth_routes.py</code></td><td><code>verify_otp_phone()</code></td></tr>
+                <tr><td>Create profile</td><td><code>backend/app/</code></td><td><code>user_profile.py</code></td><td><code>UserProfileService.create_profile()</code></td></tr>
+                <tr><td>Create token</td><td><code>backend/app/</code></td><td><code>auth.py</code></td><td><code>create_access_token()</code></td></tr>
+                <tr><td>Personality (background)</td><td><code>backend/app/</code></td><td><code>personality_pipeline.py</code></td><td><code>analyze_personality_from_social_media()</code></td></tr>
+            </table>
+            <h3>Step-by-step: what happens in order</h3>
+            <ol class="step-list" start="1" style="list-style: decimal; padding-left: 24px;">
+                <li><strong>User requests OTP:</strong> Frontend sends <code>POST /api/auth/send-otp-phone</code> with body <code>{ "phone_number": "09XX...", "first_name": "...", "last_name": "..." }</code>. Phone is validated with a Philippine format regex (<code>+63</code> / <code>0</code> + 9 digits).</li>
+                <li><strong>Backend stores OTP:</strong> Backend normalizes the phone to <code>+63XXXXXXXXXX</code>, generates an OTP (in dev it is always <code>000000</code>), then stores two keys in Redis: <code>otp:phone:+63XXXXXXXXXX</code> = OTP string, and <code>otp:meta:phone:+63XXXXXXXXXX</code> = JSON <code>{ "first_name", "last_name", "phone_number" }</code>. Both keys use <code>expire=600</code> (10 minutes). Response to client: <code>{ "message": "OTP sent...", "dummy_otp_hint": "Use OTP: 000000 to verify" }</code>.</li>
+                <li><strong>User submits OTP:</strong> Frontend sends <code>POST /api/auth/verify-otp-phone</code> with <code>{ "phone_number", "otp", "first_name", "last_name" }</code>.</li>
+                <li><strong>Backend verifies:</strong> Backend reads <code>stored_otp = redis_client.get(otp_key)</code>. If missing or wrong (and not dev dummy), it returns 400/401. If correct, it deletes <code>otp_key</code> and <code>meta_key</code> so the OTP cannot be reused.</li>
+                <li><strong>Profile creation:</strong> Backend generates a new <code>user_id</code> (UUID), builds <code>user_email = "+63...@phone.local"</code> and <code>user_name</code> from first/last name, then calls <code>profile_service.create_profile(user_id, email, name, phone_number, first_name, last_name)</code>. That writes the profile to InstantDB (and optionally BigQuery).</li>
+                <li><strong>Background personality task:</strong> Backend calls <code>asyncio.create_task(_run_personality_analysis())</code>. That task waits ~1 second, optionally retries <code>get_profile(user_id)</code> up to 5 times, then calls <code>analyze_personality_from_social_media(user_id, first_name, last_name, phone_number)</code>. The HTTP response is not waiting for this to finish.</li>
+                <li><strong>Response to client:</strong> Backend creates a JWT with <code>create_access_token(data={"sub": user_id, "email": user_email, "phone_number": normalized_phone})</code> and returns <code>{ "access_token", "token_type": "bearer", "user_id", "email", "phone_number", "personality_analysis_status": "in_progress" }</code>. The frontend stores <code>access_token</code> and <code>user_id</code> and uses the token in the <code>Authorization</code> header for later requests.</li>
+            </ol>
+            <h3>Redis keys and expiration (detail)</h3>
+            <div class="detail-block">
+                <ul>
+                    <li><code>otp:phone:+639XXXXXXXXXX</code> — value is the 6-digit OTP string. TTL = <code>OTP_EXPIRATION_SECONDS</code> (600 seconds = 10 minutes). Deleted immediately after successful verification.</li>
+                    <li><code>otp:meta:phone:+639XXXXXXXXXX</code> — value is JSON: <code>{"first_name","last_name","phone_number"}</code>. Same TTL. Used during verify to fill in name if the client did not send it again. Also deleted after verification.</li>
+                </ul>
+            </div>
+            <h3>JWT payload (what’s inside the token)</h3>
+            <p>The backend uses <code>app.auth.create_access_token(data)</code> which adds an <code>exp</code> claim and signs with <code>settings.jwt_secret_key</code>. The payload typically contains:</p>
+            <ul class="step-list">
+                <li><code>sub</code> — the <code>user_id</code> (UUID). This is the main identifier for “who is this user?” on every request.</li>
+                <li><code>email</code> — for phone users this is <code>+63...@phone.local</code>; used for display or compatibility.</li>
+                <li><code>phone_number</code> — normalized <code>+63...</code>.</li>
+                <li><code>exp</code> — expiration timestamp (e.g. 24 hours from issue, from <code>settings.jwt_expiration_hours</code>).</li>
+            </ul>
+            <p>Protected routes use <code>get_current_user</code>, which reads <code>Authorization: Bearer &lt;token&gt;</code>, decodes the JWT, and returns <code>{"user_id": payload["sub"], "email": payload.get("email")}</code>. If the token is missing or invalid, the route returns 401.</p>
+            <h3>Code: where OTP is stored and verified</h3>
+            <p>Send-OTP stores the OTP and metadata in Redis with a 10-minute TTL. Verify reads the OTP, compares it (with special handling for dev dummy OTPs like <code>000000</code>), deletes both keys, creates the profile, schedules the personality task, and returns the JWT.</p>
+            <div class="code-block">
+                <span class="comment"># auth_routes.py – send_otp_phone: Redis keys and TTL</span><br/>
+                otp_key = <span class="string">f"otp:phone:{normalized_phone}"</span>   <span class="comment"># e.g. otp:phone:+639171234567</span><br/>
+                meta_key = <span class="string">f"otp:meta:phone:{normalized_phone}"</span><br/>
+                <span class="func">await</span> redis_client.<span class="func">set</span>(otp_key, otp, expire=OTP_EXPIRATION_SECONDS)  <span class="comment"># 600</span><br/>
+                <span class="func">await</span> redis_client.<span class="func">set</span>(meta_key, json.dumps({<span class="string">"first_name"</span>: request.first_name, ...}), expire=600)
+            </div>
+            <div class="code-block">
+                <span class="comment"># auth_routes.py – verify_otp_phone (simplified)</span><br/>
+                stored_otp = <span class="func">await</span> redis_client.<span class="func">get</span>(otp_key)<br/>
+                <span class="keyword">if</span> stored_otp <span class="keyword">and</span> stored_otp != request.otp: <span class="func">raise</span> HTTPException(<span class="num">401</span>, <span class="string">"Invalid OTP"</span>)<br/>
+                <span class="func">await</span> redis_client.<span class="func">delete</span>(otp_key)  <span class="comment"># one-time use</span><br/>
+                user_profile = <span class="func">await</span> profile_service.<span class="func">create_profile</span>(user_id=..., name=..., phone_number=...)<br/>
+                asyncio.<span class="func">create_task</span>(_run_personality_analysis())  <span class="comment"># fire-and-forget; does not block response</span><br/>
+                <span class="keyword">return</span> {<span class="string">"access_token"</span>: create_access_token(...), <span class="string">"user_id"</span>: user_id, ...}
+            </div>
+            <div class="learn">
+                <strong>Background task:</strong> <code>_run_personality_analysis()</code> waits ~1 second, optionally retries <code>get_profile(user_id)</code>, then calls <code>analyze_personality_from_social_media(...)</code>. The user gets the JWT immediately; personality is written to InstantDB later and used for recommendations and chat.
+            </div>
+        </section>
+
+        <!-- ========== 3. PERSONALITY PIPELINE ========== -->
+        <section>
+            <h2>3. Personality pipeline (Search → Scrape → Summarize → Analyze → Store)</h2>
+            <p>After login, the backend runs the personality pipeline in the background. Its goal is to infer six personality traits (adventurous, cultural, foodie, nature_lover, history_buff, social) as floats between 0 and 1, then save them and a short text summary to the user’s profile in InstantDB. The pipeline first tries to get data from social profiles (search then scrape); if that yields nothing useful, it uses Google search results via Bright Data SERP, summarizes them with an LLM, and then runs a second LLM call to turn the summary into trait scores. If SERP also fails, it infers traits from a short context (e.g. “tourism app user in Bacolod”) or falls back to moderate default scores so the profile is never left with all zeros.</p>
+            <div class="flowchart-wrap">
+                <svg viewBox="0 0 560 300" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                            <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <rect x="20" y="20" width="120" height="40" rx="6" class="node-backend"/>
+                    <text x="80" y="35" class="node-text-small">personality_pipeline.py</text>
+                    <text x="80" y="48" class="node-text-small">analyze_personality_from_social_media</text>
+                    <rect x="150" y="20" width="90" height="40" rx="6" class="node-service"/>
+                    <text x="195" y="35" class="node-text-small">social_scraper.py</text>
+                    <text x="195" y="48" class="node-text-small">search_social_profiles</text>
+                    <path d="M140 40 L150 40" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <rect x="260" y="20" width="90" height="40" rx="6" class="node-service"/>
+                    <text x="305" y="35" class="node-text-small">social_scraper.py</text>
+                    <text x="305" y="48" class="node-text-small">scrape_profile_data</text>
+                    <path d="M240 36 L260 36" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <rect x="140" y="75" width="100" height="32" rx="6" fill="#334155"/>
+                    <text x="190" y="95" class="node-text-small" fill="#e2e8f0">SERP fallback</text>
+                    <path d="M240 52 L240 75" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <text x="245" y="68" class="label-text">no data</text>
+                    <rect x="370" y="20" width="90" height="40" rx="6" class="node-service"/>
+                    <text x="415" y="35" class="node-text-small">personality_analyzer.py</text>
+                    <text x="415" y="48" class="node-text-small">summarize_social_data</text>
+                    <path d="M350 36 L370 36" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <rect x="480" y="20" width="80" height="40" rx="6" class="node-service"/>
+                    <text x="520" y="35" class="node-text-small">personality_analyzer.py</text>
+                    <text x="520" y="48" class="node-text-small">analyze_personality_from_summary</text>
+                    <path d="M460 36 L480 36" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <rect x="240" y="75" width="100" height="40" rx="6" class="node-service"/>
+                    <text x="290" y="90" class="node-text-small">personality_analyzer.py</text>
+                    <text x="290" y="103" class="node-text-small">summarize_google_search_results</text>
+                    <path d="M285 107 L350 36" class="node-arrow" stroke-dasharray="3 3" marker-end="url(#arrow3)"/>
+                    <rect x="480" y="75" width="80" height="32" rx="6" class="node-service"/>
+                    <text x="520" y="95" class="node-text-small">Analyze</text>
+                    <path d="M330 95 L410 95 L410 52 L480 52" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <rect x="240" y="150" width="120" height="40" rx="6" class="node-db"/>
+                    <text x="300" y="168" class="node-text-small">user_profile.py</text>
+                    <text x="300" y="182" class="node-text-small">update_personality</text>
+                    <path d="M520 52 L520 150 L300 170" class="node-arrow" marker-end="url(#arrow3)"/>
+                    <text x="400" y="100" class="label-text">PersonalityTraits</text>
+                </svg>
+            </div>
+            <h3>File and function reference (Personality pipeline)</h3>
+            <table class="file-func-table">
+                <tr><th>Step</th><th>Folder</th><th>File</th><th>Function</th></tr>
+                <tr><td>Entry</td><td><code>backend/app/</code></td><td><code>personality_pipeline.py</code></td><td><code>analyze_personality_from_social_media()</code></td></tr>
+                <tr><td>Search profiles</td><td><code>backend/app/</code></td><td><code>social_scraper.py</code></td><td><code>SocialMediaScraper.search_social_profiles()</code></td></tr>
+                <tr><td>Scrape FB/IG</td><td><code>backend/app/</code></td><td><code>social_scraper.py</code></td><td><code>SocialMediaScraper.scrape_profile_data()</code></td></tr>
+                <tr><td>SERP fallback</td><td><code>backend/app/</code></td><td><code>bright_data_client.py</code></td><td><code>search_public()</code></td></tr>
+                <tr><td>Summarize</td><td><code>backend/app/</code></td><td><code>personality_analyzer.py</code></td><td><code>summarize_social_data()</code> or <code>summarize_google_search_results()</code></td></tr>
+                <tr><td>Analyze traits</td><td><code>backend/app/</code></td><td><code>personality_analyzer.py</code></td><td><code>analyze_personality_from_summary()</code></td></tr>
+                <tr><td>Store</td><td><code>backend/app/</code></td><td><code>user_profile.py</code></td><td><code>UserProfileService.update_personality()</code></td></tr>
+            </table>
+            <h3>Step-by-step: what the pipeline does</h3>
+            <ol class="step-list" start="1" style="list-style: decimal; padding-left: 24px;">
+                <li><strong>Search for profiles:</strong> <code>SocialMediaScraper.search_social_profiles(first_name, last_name, phone_number)</code> returns a dict with keys like <code>facebook_profiles</code> and <code>instagram_profiles</code>, each a list of items with <code>url</code>. These URLs are candidates to scrape.</li>
+                <li><strong>Scrape (optional):</strong> If there is a Facebook profile URL, the code calls <code>scrape_profile_data(profile_url, "facebook")</code>; if that returns nothing, it tries the first Instagram profile. In practice, scraping often returns nothing (anti-bot), so the pipeline is designed to rely on the next step.</li>
+                <li><strong>SERP fallback (main path):</strong> If <code>scraped_data</code> is missing or empty, the code uses <code>bright_data_client.search_public(source="google", query=first_name + " " + last_name, limit=10)</code>. That returns a list of search results (title, snippet, URL). Those URLs are collected into <code>source_links</code> for the profile.</li>
+                <li><strong>Summarize:</strong> If scraped data existed and had content, <code>analyzer.summarize_social_data(scraped_data)</code> produces a text summary. Otherwise <code>analyzer.summarize_google_search_results(serp_results, first_name, last_name)</code> turns the SERP snippets into one summary string. Both use an LLM.</li>
+                <li><strong>Analyze personality:</strong> <code>analyzer.analyze_personality_from_summary(summary)</code> returns a <code>PersonalityTraits</code> Pydantic model: six floats (0–1) for adventurous, cultural, foodie, nature_lover, history_buff, social. Defaults are 0.5 if the LLM does not specify.</li>
+                <li><strong>Store:</strong> <code>profile_service.update_personality(user_id, personality, characteristics_summary=summary, source_links=source_links)</code> writes the traits and summary to InstantDB (and optionally caches in memory). Later, <code>get_profile(user_id)</code> returns a <code>UserProfile</code> that includes this <code>personality</code> and <code>characteristics_summary</code>.</li>
+            </ol>
+            <h3>PersonalityTraits model (data shape)</h3>
+            <div class="detail-block">
+                <p>Defined in <code>app.user_profile</code>. All fields are <code>float</code> in [0.0, 1.0], default 0.5:</p>
+                <ul>
+                    <li><code>adventurous</code> — openness to risk, new experiences</li>
+                    <li><code>cultural</code> — interest in arts, heritage, local culture</li>
+                    <li><code>foodie</code> — interest in food and dining</li>
+                    <li><code>nature_lover</code> — interest in outdoors, nature, parks</li>
+                    <li><code>history_buff</code> — interest in history, museums, landmarks</li>
+                    <li><code>social</code> — interest in socializing, nightlife, group activities</li>
+                </ul>
+                <p>Recommendations use these scores to rank or filter places (e.g. higher <code>foodie</code> boosts restaurants and food tours).</p>
+            </div>
+            <h3>Fallbacks when data is missing</h3>
+            <p>If SERP returns no results (e.g. Bright Data not configured or rate limit), the code builds a short <code>context_summary</code> from the user’s name and the fact they use a tourism app in Bacolod, then calls <code>analyze_personality_from_summary(context_summary)</code> to get at least some non-zero traits. If that or any step fails with an exception, the pipeline saves a <code>PersonalityTraits</code> with moderate defaults (e.g. 0.65, 0.7, 0.65, 0.55, 0.45, 0.75) so the profile is never left with all zeros.</p>
+            <h3>Code: pipeline entry and SERP fallback</h3>
+            <p>The single entry point is <code>analyze_personality_from_social_media(user_id, first_name, last_name, phone_number)</code>. It coordinates the scraper, Bright Data client, and <code>PersonalityAnalyzer</code>, then calls <code>update_personality</code> with the final traits and summary.</p>
+            <div class="code-block">
+                <span class="comment"># personality_pipeline.py (simplified)</span><br/>
+                search_results = <span class="func">await</span> scraper.<span class="func">search_social_profiles</span>(first_name, last_name, phone_number)<br/>
+                <span class="keyword">if</span> search_results.<span class="func">get</span>(<span class="string">"facebook_profiles"</span>):<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;scraped_data = <span class="func">await</span> scraper.<span class="func">scrape_profile_data</span>(profile_url, <span class="string">"facebook"</span>)<br/>
+                <span class="keyword">if not</span> scraped_data:  <span class="comment"># primary path: SERP</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;serp_results = <span class="func">await</span> bright_data_client.<span class="func">search_public</span>(source=<span class="string">"google"</span>, query=name, limit=<span class="num">10</span>)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;summary = <span class="func">await</span> analyzer.<span class="func">summarize_google_search_results</span>(serp_results, first_name, last_name)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;personality = <span class="func">await</span> analyzer.<span class="func">analyze_personality_from_summary</span>(summary)<br/>
+                <span class="func">await</span> profile_service.<span class="func">update_personality</span>(user_id, personality, characteristics_summary=summary, source_links=...)
+            </div>
+            <div class="learn">
+                <strong>Traits stored:</strong> <code>PersonalityTraits</code> and <code>characteristics_summary</code> are written to InstantDB and returned by <code>get_profile(user_id)</code>. The recommendation and chat flows read this profile to personalize results and responses.
+            </div>
+        </section>
+
+        <!-- ========== 4. CHAT WORKFLOW ========== -->
+        <section>
+            <h2>4. Chat workflow</h2>
+            <p>When the user sends a chat message, the frontend calls <code>POST /api/chat</code> with the request body <code>{ "message": "user text" }</code> and the <code>Authorization: Bearer &lt;JWT&gt;</code> header. The backend uses the JWT to get <code>user_id</code> (via <code>get_current_user</code>). It then tries the Make.com chat webhook first: if <code>settings.make_webhook_chat</code> is set, it POSTs <code>{ "user_id", "message" }</code> to that URL and expects a JSON response with a <code>response</code> field. If the webhook is missing or the request fails (network error, non-2xx, or no <code>response</code> in the body), the code falls back to the in-app <code>ChatAgent</code> (LangChain), which uses the same <code>user_id</code> and message to generate a reply. The response to the client is always <code>{ "response": "string" }</code>.</p>
+            <div class="flowchart-wrap">
+                <svg viewBox="0 0 480 160" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow4" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                            <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <rect x="20" y="50" width="80" height="40" rx="6" class="node-user"/>
+                    <text x="60" y="75" class="node-text-small">User message</text>
+                    <rect x="120" y="50" width="90" height="40" rx="6" class="node-frontend"/>
+                    <text x="165" y="75" class="node-text-small">POST /api/chat</text>
+                    <rect x="230" y="50" width="100" height="48" rx="6" class="node-backend"/>
+                    <text x="280" y="68" class="node-text-small">chat_routes.py</text>
+                    <text x="280" y="82" class="node-text-small">chat()</text>
+                    <path d="M100 70 L120 70" class="node-arrow" marker-end="url(#arrow4)"/>
+                    <path d="M210 70 L230 70" class="node-arrow" marker-end="url(#arrow4)"/>
+                    <rect x="350" y="25" width="120" height="44" rx="6" class="node-service"/>
+                    <text x="410" y="42" class="node-text-small">make_client.py</text>
+                    <text x="410" y="56" class="node-text-small">send_chat_message()</text>
+                    <rect x="350" y="82" width="120" height="44" rx="6" fill="#334155"/>
+                    <text x="410" y="99" class="node-text-small" fill="#e2e8f0">chat_agent.py</text>
+                    <text x="410" y="113" class="node-text-small" fill="#e2e8f0">ChatAgent.chat()</text>
+                    <path d="M330 74 L350 47" class="node-arrow" marker-end="url(#arrow4)"/>
+                    <path d="M330 74 L350 104" class="node-arrow" marker-end="url(#arrow4)"/>
+                    <text x="338" y="68" class="label-text">1st</text>
+                    <text x="338" y="95" class="label-text">fallback</text>
+                </svg>
+            </div>
+            <h3>File and function reference (Chat workflow)</h3>
+            <table class="file-func-table">
+                <tr><th>Step</th><th>Folder</th><th>File</th><th>Function</th></tr>
+                <tr><td>Route</td><td><code>backend/app/routes/</code></td><td><code>chat_routes.py</code></td><td><code>chat()</code></td></tr>
+                <tr><td>Auth</td><td><code>backend/app/</code></td><td><code>auth.py</code></td><td><code>get_current_user()</code></td></tr>
+                <tr><td>Make.com (1st)</td><td><code>backend/app/</code></td><td><code>make_client.py</code></td><td><code>MakeClient.send_chat_message()</code></td></tr>
+                <tr><td>Fallback</td><td><code>backend/app/</code></td><td><code>chat_agent.py</code></td><td><code>ChatAgent.chat()</code></td></tr>
+            </table>
+            <h3>Request and response (detail)</h3>
+            <div class="detail-block">
+                <p><strong>Request:</strong> <code>POST /api/chat</code>, headers <code>Authorization: Bearer &lt;JWT&gt;</code>, body <code>{ "message": "user's text" }</code>. The route depends on <code>get_current_user</code>, which decodes the JWT and provides <code>user_id</code> (and optionally email).</p>
+                <p><strong>Make.com path:</strong> <code>make_client.send_chat_message(user_id, message)</code> does <code>POST make_webhook_chat</code> with JSON <code>{ "user_id", "message" }</code>, timeout 60s. Expected response: JSON object with a <code>response</code> key (the assistant reply string). If the status is not 2xx or an exception is raised, the code catches it and falls through.</p>
+                <p><strong>Fallback path:</strong> <code>ChatAgent()</code> is from <code>app.chat_agent</code>. Its <code>chat(message, user_id)</code> method uses LangChain (and possibly the user’s profile/personality) to generate a reply. The return value is a single string.</p>
+                <p><strong>Response:</strong> Always <code>200</code> with body <code>{ "response": "assistant reply string" }</code>. If neither Make nor ChatAgent is available (e.g. LangChain not installed and no webhook), the route would raise 503; in practice the fallback is used when the webhook is missing or fails.</p>
+            </div>
+            <h3>Code: try Make.com, then LangChain</h3>
+            <div class="code-block">
+                <span class="comment"># chat_routes.py – chat()</span><br/>
+                user_id = current_user[<span class="string">"user_id"</span>]  <span class="comment"># from JWT via get_current_user</span><br/>
+                <span class="keyword">if</span> make_client.chat_webhook:  <span class="comment"># from settings.make_webhook_chat</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span>:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;make_response = <span class="func">await</span> make_client.<span class="func">send_chat_message</span>(user_id, chat_message.message)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> make_response <span class="keyword">and</span> <span class="string">"response"</span> <span class="keyword">in</span> make_response:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> ChatResponse(response=make_response[<span class="string">"response"</span>])<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">except</span> Exception:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">pass</span>  <span class="comment"># fall through to fallback</span><br/>
+                chat_agent = ChatAgent()<br/>
+                response = <span class="func">await</span> chat_agent.<span class="func">chat</span>(chat_message.message, user_id)<br/>
+                <span class="keyword">return</span> ChatResponse(response=response)
+            </div>
+        </section>
+
+        <!-- ========== 5. RECOMMENDATIONS WORKFLOW ========== -->
+        <section>
+            <h2>5. Recommendations workflow</h2>
+            <p>Recommendation endpoints return personalized lists of places (hotels, restaurants, entertainment, tourist spots, and optionally “secret” spots). The backend identifies the user via the JWT (<code>get_current_user</code> → <code>user_id</code>), loads the full profile from InstantDB (including <code>personality</code> and preferences), then either calls a Make.com recommendations webhook with <code>user_id</code> or uses the in-app <code>ComprehensiveRecommendationsService</code> to score and select items from the app’s data. The response normalizes items to a common shape (e.g. <code>name</code>, <code>url</code>, <code>description</code>, <code>match_score</code>, <code>category</code>) so the frontend can display them consistently.</p>
+            <div class="flowchart-wrap">
+                <svg viewBox="0 0 500 140" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow5" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                            <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <rect x="20" y="40" width="70" height="36" rx="6" class="node-user"/>
+                    <text x="55" y="62" class="node-text-small">GET /recommendations</text>
+                    <rect x="110" y="40" width="110" height="44" rx="6" class="node-backend"/>
+                    <text x="165" y="55" class="node-text-small">recommendation_routes.py</text>
+                    <text x="165" y="69" class="node-text-small">get_recommendations()</text>
+                    <rect x="230" y="40" width="130" height="44" rx="6" class="node-backend"/>
+                    <text x="295" y="55" class="node-text-small">user_profile.py</text>
+                    <text x="295" y="69" class="node-text-small">UserProfileService.get_profile()</text>
+                    <rect x="370" y="40" width="110" height="36" rx="6" class="node-db"/>
+                    <text x="425" y="62" class="node-text-small">InstantDB</text>
+                    <path d="M90 58 L110 58" class="node-arrow" marker-end="url(#arrow5)"/>
+                    <path d="M210 58 L230 58" class="node-arrow" marker-end="url(#arrow5)"/>
+                    <path d="M350 58 L370 58" class="node-arrow" marker-end="url(#arrow5)"/>
+                    <rect x="110" y="100" width="150" height="36" rx="6" class="node-service"/>
+                    <text x="185" y="118" class="node-text-small">comprehensive_recommendations.py</text>
+                    <text x="185" y="130" class="node-text-small">ComprehensiveRecommendationsService</text>
+                    <path d="M165 84 L165 100" class="node-arrow" marker-end="url(#arrow5)"/>
+                </svg>
+            </div>
+            <h3>File and function reference (Recommendations workflow)</h3>
+            <table class="file-func-table">
+                <tr><th>Step</th><th>Folder</th><th>File</th><th>Function</th></tr>
+                <tr><td>Route</td><td><code>backend/app/routes/</code></td><td><code>recommendation_routes.py</code></td><td><code>get_recommendations()</code> (or endpoint handler)</td></tr>
+                <tr><td>Auth</td><td><code>backend/app/</code></td><td><code>auth.py</code></td><td><code>get_current_user()</code></td></tr>
+                <tr><td>Profile</td><td><code>backend/app/</code></td><td><code>user_profile.py</code></td><td><code>UserProfileService.get_profile()</code></td></tr>
+                <tr><td>Recommendations</td><td><code>backend/app/</code></td><td><code>comprehensive_recommendations.py</code></td><td><code>ComprehensiveRecommendationsService</code> (or make_client.get_recommendations)</td></tr>
+            </table>
+            <h3>How the profile is used</h3>
+            <p>Protected recommendation routes use <code>current_user: dict = Depends(get_current_user)</code> to get <code>user_id</code>. They then call <code>profile_service.get_profile(user_id)</code>, which reads from InstantDB (and optionally BigQuery fallback). The returned <code>UserProfile</code> includes <code>personality</code> (the six trait scores) and <code>preferences</code>, which the recommendation logic uses to rank or filter places—for example, higher <code>foodie</code> boosts restaurants and food-related spots.</p>
+            <h3>Where recommendations come from</h3>
+            <div class="detail-block">
+                <p>Depending on configuration, the backend may:</p>
+                <ul>
+                    <li><strong>Make.com:</strong> Call <code>make_client.get_recommendations(user_id)</code>, which POSTs to <code>settings.make_webhook_recommendations</code> with <code>{ "user_id" }</code>. The webhook is expected to return a structure that the route then normalizes (e.g. mapping <code>rating</code> to <code>match_score</code>).</li>
+                    <li><strong>In-app:</strong> Use <code>ComprehensiveRecommendationsService</code> (and possibly the recommendation engine) to pull places from the app’s data store and score them using the user’s personality and preferences. Results are returned in the same shape as the Make path for a consistent API.</li>
+                </ul>
+                <p>Response shape typically includes lists such as <code>hotels</code>, <code>restaurants</code>, <code>entertainment</code>, <code>tourist_spots</code>, <code>secret_recommendations</code>, each a list of objects with <code>name</code>, <code>url</code>, <code>description</code>, <code>match_score</code> (0–1), and optional <code>category</code>, <code>image</code>.</p>
+            </div>
+        </section>
+
+        <!-- ========== 6. PERSONALITY-BASED HOTEL SELECTION ALGORITHM ========== -->
+        <section>
+            <h2>6. Personality-based hotel selection algorithm</h2>
+            <p>When a user requests hotel recommendations, the system uses their personality traits to calculate a match score for each hotel. Hotels are filtered to only include those with a match score above 50%, ensuring personalized recommendations that align with the user's preferences. This section explains the complete algorithm with detailed mathematical calculations.</p>
+            
+            <h3>Data flow: From InstantDB to match score</h3>
+            <div class="flowchart-wrap">
+                <svg viewBox="0 0 600 280" width="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <marker id="arrow6" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                            <path d="M0 0 L8 4 L0 8 Z" fill="#94a3b8"/>
+                        </marker>
+                    </defs>
+                    <rect x="20" y="20" width="120" height="40" rx="6" class="node-db"/>
+                    <text x="80" y="35" class="node-text-small">InstantDB</text>
+                    <text x="80" y="48" class="node-text-small">user_profiles</text>
+                    <rect x="160" y="20" width="120" height="40" rx="6" class="node-backend"/>
+                    <text x="220" y="35" class="node-text-small">user_profile.py</text>
+                    <text x="220" y="48" class="node-text-small">get_profile()</text>
+                    <path d="M140 40 L160 40" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <text x="150" y="32" class="label-text">Load user</text>
+                    <rect x="300" y="20" width="120" height="40" rx="6" class="node-backend"/>
+                    <text x="360" y="35" class="node-text-small">comprehensive_recommendations.py</text>
+                    <text x="360" y="48" class="node-text-small">_get_hotels()</text>
+                    <path d="M280 40 L300 40" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <rect x="440" y="20" width="120" height="40" rx="6" class="node-db"/>
+                    <text x="500" y="35" class="node-text-small">InstantDB</text>
+                    <text x="500" y="48" class="node-text-small">scraped_content_accommodation_hotels</text>
+                    <path d="M420 40 L440 40" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <text x="430" y="32" class="label-text">Load hotels</text>
+                    <rect x="20" y="80" width="540" height="60" rx="6" fill="#334155"/>
+                    <text x="290" y="100" class="node-text-small" fill="#e2e8f0">For each hotel:</text>
+                    <text x="290" y="118" class="node-text-small" fill="#e2e8f0">1. Extract personality_keywords from hotel (from InstantDB)</text>
+                    <text x="290" y="133" class="node-text-small" fill="#e2e8f0">2. Compare with user personality traits</text>
+                    <rect x="20" y="160" width="180" height="40" rx="6" class="node-service"/>
+                    <text x="110" y="178" class="node-text-small">_calculate_match_score()</text>
+                    <text x="110" y="190" class="node-text-small">Calculate for each trait</text>
+                    <path d="M290 140 L110 180" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <rect x="220" y="160" width="180" height="40" rx="6" class="node-service"/>
+                    <text x="310" y="178" class="node-text-small">magnitude_match = user_val × item_val</text>
+                    <text x="310" y="190" class="node-text-small">similarity = 1.0 - |user_val - item_val|</text>
+                    <path d="M200 180 L220 180" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <rect x="420" y="160" width="140" height="40" rx="6" class="node-service"/>
+                    <text x="490" y="178" class="node-text-small">combined_score =</text>
+                    <text x="490" y="190" class="node-text-small">magnitude × 0.7 + similarity × 0.3</text>
+                    <path d="M400 180 L420 180" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <rect x="20" y="220" width="120" height="40" rx="6" class="node-backend"/>
+                    <text x="80" y="238" class="node-text-small">Average all traits</text>
+                    <text x="80" y="250" class="node-text-small">Scale to 0.1-1.0</text>
+                    <path d="M490 200 L490 220 L80 240" class="node-arrow" marker-end="url(#arrow6)"/>
+                    <rect x="160" y="220" width="120" height="40" rx="6" fill="#334155"/>
+                    <text x="220" y="238" class="node-text-small" fill="#e2e8f0">Filter: match_score > 0.5</text>
+                    <text x="220" y="250" class="node-text-small" fill="#e2e8f0">Return filtered hotels</text>
+                    <path d="M140 240 L160 240" class="node-arrow" marker-end="url(#arrow6)"/>
+                </svg>
+            </div>
+
+            <h3>Step-by-step algorithm</h3>
+            <ol class="step-list" start="1" style="list-style: decimal; padding-left: 24px;">
+                <li><strong>Load user personality:</strong> <code>profile = await profile_service.get_profile(user_id)</code> retrieves the user's personality traits from InstantDB. Each trait is a float between 0.0 and 1.0.</li>
+                <li><strong>Load hotels from InstantDB:</strong> <code>scraped_content = await self._get_scraped_content_for_category("accommodation_hotels")</code> loads all hotels from the InstantDB collection. Each hotel includes <code>personality_keywords</code> extracted during scraping.</li>
+                <li><strong>Filter invalid hotels:</strong> Skip hotels without names, general articles/guides, test entries, and duplicates.</li>
+                <li><strong>Calculate match score:</strong> For each valid hotel, call <code>match_score = self._calculate_match_score(rec_item, profile.personality)</code>.</li>
+                <li><strong>Filter by threshold:</strong> Only include hotels where <code>match_score > 0.5</code> (50%).</li>
+                <li><strong>Return results:</strong> Format and return filtered hotels sorted by match score.</li>
+            </ol>
+
+            <h3>The match score calculation algorithm</h3>
+            <p>The core algorithm compares user personality traits with hotel personality keywords. It uses a two-part scoring system:</p>
+            
+            <div class="detail-block">
+                <h4>Formula for each trait:</h4>
+                <div class="code-block">
+                    <span class="comment"># For each of the 6 personality traits:</span><br/>
+                    user_val = profile.personality.<span class="func">trait</span>  <span class="comment"># e.g. adventurous = 0.8</span><br/>
+                    item_val = hotel.personality_keywords[<span class="string">"trait"</span>]  <span class="comment"># e.g. adventurous = 0.7</span><br/><br/>
+                    <span class="comment"># Part 1: Magnitude Match (70% weight)</span><br/>
+                    magnitude_match = user_val × item_val  <span class="comment"># 0.8 × 0.7 = 0.56</span><br/><br/>
+                    <span class="comment"># Part 2: Similarity (30% weight)</span><br/>
+                    similarity = <span class="num">1.0</span> - |user_val - item_val|  <span class="comment"># 1.0 - |0.8 - 0.7| = 0.9</span><br/><br/>
+                    <span class="comment"># Combined score for this trait</span><br/>
+                    combined_score = (magnitude_match × <span class="num">0.7</span>) + (similarity × <span class="num">0.3</span>)<br/>
+                    <span class="comment"># (0.56 × 0.7) + (0.9 × 0.3) = 0.392 + 0.27 = 0.662</span>
+                </div>
+                
+                <h4>Final score calculation:</h4>
+                <div class="code-block">
+                    <span class="comment"># Average across all 6 traits</span><br/>
+                    total_score = sum(combined_score for each trait)<br/>
+                    count = number of traits with valid values<br/>
+                    score = total_score / count<br/><br/>
+                    <span class="comment"># Scale to 0.1-1.0 range (10% to 100%)</span><br/>
+                    scaled_score = <span class="num">0.1</span> + (score × <span class="num">0.9</span>)<br/>
+                    <span class="comment"># Ensures minimum 10% visibility</span><br/>
+                    <span class="keyword">return</span> min(<span class="num">1.0</span>, max(<span class="num">0.1</span>, scaled_score))
+                </div>
+            </div>
+
+            <h3>Complete example calculation</h3>
+            <p>Let's walk through a real example with actual numbers:</p>
+            
+            <div class="detail-block">
+                <h4>User Personality (from InstantDB):</h4>
+                <div class="code-block">
+                    profile.personality = {<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"adventurous"</span>: <span class="num">0.8</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"cultural"</span>: <span class="num">0.6</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"foodie"</span>: <span class="num">0.9</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"nature_lover"</span>: <span class="num">0.7</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"history_buff"</span>: <span class="num">0.4</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"social"</span>: <span class="num">0.8</span><br/>
+                    }
+                </div>
+
+                <h4>Hotel from InstantDB:</h4>
+                <div class="code-block">
+                    hotel = {<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"hotel_name"</span>: <span class="string">"ABC Resort"</span>,<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"personality_keywords"</span>: {<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"adventurous"</span>: <span class="num">0.7</span>,  <span class="comment"># Has adventure activities</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"cultural"</span>: <span class="num">0.3</span>,    <span class="comment"># Not very cultural</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"foodie"</span>: <span class="num">0.8</span>,      <span class="comment"># Great restaurant</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"nature_lover"</span>: <span class="num">0.9</span>, <span class="comment"># Beachfront, nature views</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"history_buff"</span>: <span class="num">0.2</span>, <span class="comment"># Not historical</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"social"</span>: <span class="num">0.6</span>       <span class="comment"># Some social activities</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+                    }
+                </div>
+
+                <h4>Calculation for each trait:</h4>
+                <table class="file-func-table">
+                    <tr>
+                        <th>Trait</th>
+                        <th>User Value</th>
+                        <th>Hotel Value</th>
+                        <th>Magnitude Match</th>
+                        <th>Similarity</th>
+                        <th>Combined Score</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Adventurous</strong></td>
+                        <td>0.8</td>
+                        <td>0.7</td>
+                        <td>0.8 × 0.7 = <strong>0.56</strong></td>
+                        <td>1.0 - |0.8-0.7| = <strong>0.9</strong></td>
+                        <td>(0.56×0.7) + (0.9×0.3) = <strong>0.662</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cultural</strong></td>
+                        <td>0.6</td>
+                        <td>0.3</td>
+                        <td>0.6 × 0.3 = <strong>0.18</strong></td>
+                        <td>1.0 - |0.6-0.3| = <strong>0.7</strong></td>
+                        <td>(0.18×0.7) + (0.7×0.3) = <strong>0.336</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Foodie</strong></td>
+                        <td>0.9</td>
+                        <td>0.8</td>
+                        <td>0.9 × 0.8 = <strong>0.72</strong></td>
+                        <td>1.0 - |0.9-0.8| = <strong>0.9</strong></td>
+                        <td>(0.72×0.7) + (0.9×0.3) = <strong>0.774</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Nature Lover</strong></td>
+                        <td>0.7</td>
+                        <td>0.9</td>
+                        <td>0.7 × 0.9 = <strong>0.63</strong></td>
+                        <td>1.0 - |0.7-0.9| = <strong>0.8</strong></td>
+                        <td>(0.63×0.7) + (0.8×0.3) = <strong>0.681</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>History Buff</strong></td>
+                        <td>0.4</td>
+                        <td>0.2</td>
+                        <td>0.4 × 0.2 = <strong>0.08</strong></td>
+                        <td>1.0 - |0.4-0.2| = <strong>0.8</strong></td>
+                        <td>(0.08×0.7) + (0.8×0.3) = <strong>0.296</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Social</strong></td>
+                        <td>0.8</td>
+                        <td>0.6</td>
+                        <td>0.8 × 0.6 = <strong>0.48</strong></td>
+                        <td>1.0 - |0.8-0.6| = <strong>0.8</strong></td>
+                        <td>(0.48×0.7) + (0.8×0.3) = <strong>0.576</strong></td>
+                    </tr>
+                </table>
+
+                <h4>Final score calculation:</h4>
+                <div class="code-block">
+                    total = <span class="num">0.662</span> + <span class="num">0.336</span> + <span class="num">0.774</span> + <span class="num">0.681</span> + <span class="num">0.296</span> + <span class="num">0.576</span><br/>
+                    total = <span class="num">3.426</span><br/>
+                    count = <span class="num">6</span><br/>
+                    score = <span class="num">3.426</span> / <span class="num">6</span> = <span class="num">0.571</span><br/><br/>
+                    scaled_score = <span class="num">0.1</span> + (<span class="num">0.571</span> × <span class="num">0.9</span>)<br/>
+                    scaled_score = <span class="num">0.1</span> + <span class="num">0.514</span> = <span class="num">0.614</span> (<span class="num">61.4%</span>)
+                </div>
+
+                <h4>Filtering decision:</h4>
+                <div class="code-block">
+                    MIN_MATCH = <span class="num">0.5</span>  <span class="comment"># 50% threshold</span><br/>
+                    <span class="keyword">if</span> match_score <= MIN_MATCH:  <span class="comment"># 0.614 > 0.5 ✅</span><br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">continue</span>  <span class="comment"># Skip this hotel</span><br/><br/>
+                    <span class="comment"># Since 0.614 > 0.5, this hotel is INCLUDED in recommendations</span>
+                </div>
+            </div>
+
+            <h3>Why this algorithm works</h3>
+            <div class="learn">
+                <strong>Magnitude Match (70% weight):</strong> Rewards hotels where both user and hotel have high trait values. For example, if a user is highly adventurous (0.9) and a hotel offers adventure activities (0.8), the magnitude match is 0.72, indicating a strong alignment.<br/><br/>
+                <strong>Similarity (30% weight):</strong> Rewards hotels where trait values are close to the user's values. This ensures that even if both values are moderate, a close match (e.g., user 0.6, hotel 0.65) scores better than a mismatch (user 0.6, hotel 0.2).<br/><br/>
+                <strong>Combined approach:</strong> The 70/30 split ensures that high-magnitude matches (both high) are prioritized while still rewarding similarity. This creates a balanced recommendation system that considers both intensity and alignment.
+            </div>
+
+            <h3>Code reference</h3>
+            <div class="code-block">
+                <span class="comment"># comprehensive_recommendations.py - _get_hotels()</span><br/>
+                <span class="keyword">for</span> item <span class="keyword">in</span> scraped_content:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># ... filtering logic ...</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;rec_item = {<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"name"</span>: hotel_name,<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"personality_keywords"</span>: item.<span class="func">get</span>(<span class="string">"personality_keywords"</span>, {}),<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># ... other fields ...</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;match_score = self.<span class="func">_calculate_match_score</span>(rec_item, profile.personality)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> match_score <= MIN_MATCH:  <span class="comment"># MIN_MATCH = 0.5</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">continue</span>  <span class="comment"># Skip hotels below threshold</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;formatted_item = self.<span class="func">_format_recommendation</span>(rec_item, match_score, ...)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;formatted_hotels.<span class="func">append</span>(formatted_item)
+            </div>
+
+            <div class="code-block">
+                <span class="comment"># comprehensive_recommendations.py - _calculate_match_score()</span><br/>
+                <span class="keyword">def</span> <span class="func">_calculate_match_score</span>(self, item: Dict, personality) -> <span class="keyword">float</span>:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> <span class="string">"personality_keywords"</span> <span class="keyword">in</span> item:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pk = item[<span class="string">"personality_keywords"</span>]<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;traits = [<span class="string">"adventurous"</span>, <span class="string">"cultural"</span>, <span class="string">"foodie"</span>, <span class="string">"nature_lover"</span>, <span class="string">"history_buff"</span>, <span class="string">"social"</span>]<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total = <span class="num">0.0</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count = <span class="num">0</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">for</span> t <span class="keyword">in</span> traits:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_val = pk.<span class="func">get</span>(t)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> item_val <span class="keyword">is not None</span>:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user_val = <span class="func">getattr</span>(personality, t, <span class="num">0.5</span>)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;magnitude_match = user_val × item_val<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;similarity = <span class="num">1.0</span> - <span class="func">abs</span>(user_val - item_val)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;combined_score = magnitude_match × <span class="num">0.7</span> + similarity × <span class="num">0.3</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;total += combined_score<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count += <span class="num">1</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span> count > <span class="num">0</span>:<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;score = total / count<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_score = <span class="num">0.1</span> + (score × <span class="num">0.9</span>)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">return</span> <span class="func">min</span>(<span class="num">1.0</span>, <span class="func">max</span>(<span class="num">0.1</span>, scaled_score))
+            </div>
+
+            <h3>Summary</h3>
+            <p>The personality-based hotel selection algorithm ensures that:</p>
+            <ul class="step-list">
+                <li>Hotels are loaded from InstantDB with their <code>personality_keywords</code> already extracted during scraping</li>
+                <li>Each hotel is scored by comparing user personality traits with hotel personality keywords</li>
+                <li>The scoring considers both magnitude (both high = strong match) and similarity (close values = better alignment)</li>
+                <li>Only hotels with match scores above 50% are included in recommendations</li>
+                <li>The algorithm is transparent and mathematically sound, providing explainable recommendations</li>
+            </ul>
+        </section>
+
+        <!-- ========== 7. QUICK REFERENCE ========== -->
+        <section>
+            <h2>7. Quick reference: Folder, File, and Function</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Folder</th>
+                        <th>File</th>
+                        <th>Function / Entry Point</th>
+                        <th>Role in workflow</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>main.py</code></td>
+                        <td><code>app</code>, <code>lifespan()</code></td>
+                        <td>FastAPI app, CORS, lifespan (BigQuery, Redis, storage, recommendation engine). Includes auth, profile, admin, analytics, OAuth, chat, recommendation, RAG routers. Global exception handlers.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/routes/</code></td>
+                        <td><code>auth_routes.py</code></td>
+                        <td><code>send_otp_phone()</code>, <code>verify_otp_phone()</code>, <code>send_otp()</code>, <code>verify_otp()</code></td>
+                        <td><code>POST /api/auth/send-otp-phone</code>, <code>verify-otp-phone</code>, etc. Normalizes phone, stores OTP in Redis, creates profile, returns JWT, schedules <code>analyze_personality_from_social_media</code> via <code>create_task</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>auth.py</code></td>
+                        <td><code>create_access_token()</code>, <code>decode_access_token()</code>, <code>get_current_user()</code></td>
+                        <td>JWT creation/validation. <code>get_current_user</code> Depends on Bearer token, returns <code>{ user_id, email }</code>. Uses <code>settings.jwt_secret_key</code>, <code>jwt_expiration_hours</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>user_profile.py</code></td>
+                        <td><code>UserProfileService.get_profile()</code>, <code>create_profile()</code>, <code>update_personality()</code></td>
+                        <td><code>PersonalityTraits</code>, <code>UserProfile</code> models. InstantDB then BigQuery for <code>get_profile</code>. In-memory personality cache.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>personality_pipeline.py</code></td>
+                        <td><code>analyze_personality_from_social_media()</code></td>
+                        <td>Search profiles → scrape FB/IG → SERP fallback → summarize (LLM) → analyze traits (LLM) → <code>update_personality</code>. Handles fallbacks and errors.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/routes/</code></td>
+                        <td><code>chat_routes.py</code></td>
+                        <td><code>chat()</code>, <code>get_welcome_message()</code></td>
+                        <td><code>POST /api/chat</code>: Make.com first, then <code>ChatAgent.chat()</code>. <code>GET /api/chat/welcome</code> for personalized welcome with recommendations.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/routes/</code></td>
+                        <td><code>recommendation_routes.py</code></td>
+                        <td><code>get_recommendations()</code>, secret-spot handler</td>
+                        <td><code>get_current_user</code> → <code>get_profile</code> → Make webhook or <code>ComprehensiveRecommendationsService</code>. Normalizes items to <code>name</code>, <code>url</code>, <code>match_score</code>, etc.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>make_client.py</code></td>
+                        <td><code>MakeClient.send_chat_message()</code>, <code>get_recommendations()</code>, <code>trigger_persona_discovery()</code></td>
+                        <td>Webhook client for Make.com. Uses <code>settings.make_webhook_chat</code>, <code>make_webhook_recommendations</code>, <code>make_webhook_persona</code>. <code>httpx.AsyncClient(timeout=60)</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>social_scraper.py</code></td>
+                        <td><code>SocialMediaScraper.search_social_profiles()</code>, <code>scrape_profile_data()</code></td>
+                        <td>Search for FB/IG profiles; scrape profile content. Used by personality pipeline.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/</code></td>
+                        <td><code>personality_analyzer.py</code></td>
+                        <td><code>summarize_social_data()</code>, <code>summarize_google_search_results()</code>, <code>analyze_personality_from_summary()</code></td>
+                        <td>LLM-based summarization and personality trait extraction. Used by personality pipeline.</td>
+                    </tr>
+                    <tr>
+                        <td><code>frontend/src/app/auth/</code></td>
+                        <td><code>callback/page.tsx</code></td>
+                        <td><code>AuthCallbackPage</code> (component), <code>handleCallback()</code></td>
+                        <td>OAuth callback: reads <code>?token=</code>, <code>?provider=</code>, stores in <code>localStorage</code>, redirects to <code>/dashboard</code>. On missing token redirects to <code>/login?error=oauth_failed</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <h3>Key data structures and config</h3>
+            <div class="detail-block">
+                <h4>Config (backend)</h4>
+                <ul>
+                    <li><code>OTP_EXPIRATION_SECONDS</code> = 600 (auth_routes).</li>
+                    <li><code>settings.jwt_secret_key</code>, <code>jwt_expiration_hours</code>, <code>jwt_algorithm</code> (auth).</li>
+                    <li><code>settings.make_webhook_chat</code>, <code>make_webhook_recommendations</code>, <code>make_webhook_persona</code> (MakeClient).</li>
+                    <li><code>settings.dev_mode</code> — when true, dummy OTPs like <code>000000</code> are accepted even if Redis has no OTP.</li>
+                </ul>
+                <h4>Important models</h4>
+                <ul>
+                    <li><code>PersonalityTraits</code>: adventurous, cultural, foodie, nature_lover, history_buff, social (float 0–1, default 0.5).</li>
+                    <li><code>UserProfile</code>: user_id, email, phone_number, first_name, last_name, name, personality, preferences, characteristics_summary, source_links, travel_history, created_at, updated_at.</li>
+                    <li>JWT payload: <code>sub</code> (user_id), <code>email</code>, <code>phone_number</code>, <code>exp</code>.</li>
+                </ul>
+            </div>
+        </section>
+
+        <p class="footnote">
+            This page is an educational overview of the Bacolod Tourist system workflow. Flowcharts are simplified; actual code may have extra branches (e.g. email OTP, OAuth). For full architecture details see <code>system_architecture.html</code>.
+        </p>
+    </div>
+</body>
+</html>
